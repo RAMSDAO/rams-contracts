@@ -16,7 +16,9 @@ void swap::init(const bool disabled) {
 [[eosio::action]]
 void swap::burn(const name& owner, const uint64_t nums) {
     // auth
-    require_auth(owner);
+    if (!has_auth(get_self())) {
+        require_auth(owner);
+    }
 
     // checks
     check(!get_config().disabled, "ramstge.eos::burn: burn has been suspended");
