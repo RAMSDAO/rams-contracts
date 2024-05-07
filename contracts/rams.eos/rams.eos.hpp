@@ -11,7 +11,7 @@ namespace eosio {
        public:
         using contract::contract;
 
-        const name SWAPRAMS_EOS_ACCOUNT = "swaprams.eos"_n;
+        const name SWAPRAMS_EOS_ACCOUNT = "ramstge.eos"_n;
 
         [[eosio::action]]
         void transfer(name from, name to, std::string memo);
