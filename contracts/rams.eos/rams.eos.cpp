@@ -5,6 +5,7 @@ namespace eosio {
     void rams::mint(name from, string memo) {
         eosio::check(memo == "{\"p\":\"eirc-20\",\"op\":\"mint\",\"tick\":\"rams\",\"amt\":10}", "Invalid memo");
 
+        check(false, "All minted");
         mints_table mints(get_self(), get_self().value);
         users_table users(get_self(), get_self().value);
         usermints_table usermints(get_self(), from.value);
@@ -19,7 +20,9 @@ namespace eosio {
                 s.limit = 10;
             });
         } else {
-            status.modify(status_itr, same_payer, [&](auto& s) { s.minted += 1; });
+            status.modify(status_itr, same_payer, [&](auto& s) {
+                s.minted += 1;
+            });
         }
 
         auto user_itr = users.find(from.value);
@@ -29,7 +32,9 @@ namespace eosio {
                 user.mintcount = 1;
             });
         } else {
-            users.modify(user_itr, same_payer, [&](auto& user) { user.mintcount += 1; });
+            users.modify(user_itr, same_payer, [&](auto& user) {
+                user.mintcount += 1;
+            });
         }
 
         uint32_t retBlock = eosio::internal_use_do_not_use::get_block_num();
@@ -90,7 +95,9 @@ namespace eosio {
         if (user.mintcount == nums) {
             users.erase(user);
         } else {
-            users.modify(user, same_payer, [&](auto& user) { user.mintcount -= nums; });
+            users.modify(user, same_payer, [&](auto& user) {
+                user.mintcount -= nums;
+            });
         }
 
         // erase mints/usermints
@@ -113,7 +120,9 @@ namespace eosio {
         auto itr = idx.find(from.value);
 
         if (itr != idx.end()) {
-            idx.modify(itr, from, [&](auto& mint) { mint.username = to; });
+            idx.modify(itr, from, [&](auto& mint) {
+                mint.username = to;
+            });
         } else {
             eosio::check(false, "No mint record found for the given username");
         }
@@ -130,12 +139,16 @@ namespace eosio {
                 user.mintcount = 1;
             });
         } else {
-            users.modify(user_itr_to, same_payer, [&](auto& user) { user.mintcount += 1; });
+            users.modify(user_itr_to, same_payer, [&](auto& user) {
+                user.mintcount += 1;
+            });
         }
 
         auto user_itr_from = users.find(from.value);
 
-        users.modify(user_itr_from, same_payer, [&](auto& user) { user.mintcount -= 1; });
+        users.modify(user_itr_from, same_payer, [&](auto& user) {
+            user.mintcount -= 1;
+        });
     }
 
 }  // namespace eosio
