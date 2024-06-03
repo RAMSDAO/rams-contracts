@@ -60,6 +60,20 @@
             ]
         },
         {
+            "name": "extended_symbol",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                }
+            ]
+        },
+        {
             "name": "issue",
             "base": "",
             "fields": [
@@ -110,6 +124,28 @@
             ]
         },
         {
+            "name": "tokenchange",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "pre_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "now_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "transfer",
             "base": "",
             "fields": [
@@ -123,6 +159,36 @@
                 },
                 {
                     "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "transferlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "from_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "to_balance",
                     "type": "asset"
                 },
                 {
@@ -159,8 +225,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "tokenchange",
+            "type": "tokenchange",
+            "ricardian_contract": ""
+        },
+        {
             "name": "transfer",
             "type": "transfer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transferlog",
+            "type": "transferlog",
             "ricardian_contract": ""
         }
     ],

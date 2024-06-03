@@ -1,0 +1,443 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addfeetoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "addtokenlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "fee_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "balancelog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "deposited",
+                    "type": "uint64"
+                },
+                {
+                    "name": "balance",
+                    "type": "extended_asset"
+                }
+            ]
+        },
+        {
+            "name": "borrow",
+            "base": "",
+            "fields": [
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "borrow_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "fee_token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "borrowlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_deposit",
+                    "type": "bool"
+                },
+                {
+                    "name": "disabled_withdraw",
+                    "type": "bool"
+                },
+                {
+                    "name": "deposit_fee_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "withdraw_fee_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "reward_pool_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "withdraw_limit_ratio",
+                    "type": "uint16"
+                }
+            ]
+        },
+        {
+            "name": "delfeetoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "fee_token_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "deltokenlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "fee_token_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "depositlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "fee",
+                    "type": "asset"
+                },
+                {
+                    "name": "output_amount",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "extended_symbol",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "fee_token_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "global_id_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "key",
+                    "type": "name"
+                },
+                {
+                    "name": "next_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "repaylog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "setfeetoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "fee_token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "stat_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deposited_bytes",
+                    "type": "uint64"
+                },
+                {
+                    "name": "used_bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "statlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_deposit",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "updateratio",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deposit_fee_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "withdraw_fee_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "reward_pool_ratio",
+                    "type": "uint16"
+                },
+                {
+                    "name": "withdraw_limit_ratio",
+                    "type": "uint16"
+                }
+            ]
+        },
+        {
+            "name": "updatestatus",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_deposit",
+                    "type": "bool"
+                },
+                {
+                    "name": "disabled_withdraw",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "withdrawlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "fee",
+                    "type": "asset"
+                },
+                {
+                    "name": "output_amount",
+                    "type": "int64"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addfeetoken",
+            "type": "addfeetoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addtokenlog",
+            "type": "addtokenlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "balancelog",
+            "type": "balancelog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "borrow",
+            "type": "borrow",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "borrowlog",
+            "type": "borrowlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "delfeetoken",
+            "type": "delfeetoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "deltokenlog",
+            "type": "deltokenlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "depositlog",
+            "type": "depositlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "repaylog",
+            "type": "repaylog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setfeetoken",
+            "type": "setfeetoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "statlog",
+            "type": "statlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updateratio",
+            "type": "updateratio",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatestatus",
+            "type": "updatestatus",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdrawlog",
+            "type": "withdrawlog",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "borrows",
+            "type": "borrow_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "config",
+            "type": "config_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "feetokens",
+            "type": "fee_token_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "global.id",
+            "type": "global_id_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "stat",
+            "type": "stat_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}
