@@ -430,7 +430,7 @@ describe('rams', () => {
             const borrowInfo = rambank_eos.getBorrowInfo('account2')
             const before_rams = getRamBytes('account2')
             await contracts.eosio.actions
-                .ramtransfer(['account2', 'rambank.eos', `${repay_amount}`, 'repay'])
+                .ramtransfer(['account2', 'rambank.eos', `${repay_amount}`, 'repay,account2'])
                 .send('account2@active')
             const after_rams = getRamBytes('account2')
             expect(before_rams - after_rams).toEqual(borrowInfo.bytes)

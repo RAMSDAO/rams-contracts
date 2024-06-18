@@ -119,10 +119,14 @@ void bank::on_ramtransfer(const name& from, const name& to, int64_t bytes, const
     if (to != get_self()) return;
 
     const name contract = get_first_receiver();
-    if (memo == "deposit") {
+    const vector<string> parts = rams::utils::split(memo, ",");
+    if (parts[0] == "deposit") {
+        check(parts.size() == 1, ERROR_RAM_TRANSFER_INVALID_MEMO);
         do_deposit_ram(from, bytes, memo);
-    } else if (memo == "repay") {
-        do_repay_ram(from, bytes, memo);
+    } else if (parts[0] == "repay") {
+        check(parts.size() == 2, ERROR_RAM_TRANSFER_INVALID_MEMO);
+        auto repay_account = rams::utils::parse_name(parts[1]);
+        do_repay_ram(from, repay_account, bytes, memo);
     } else {
         check(false, "rambank.eos: invalid memo (ex: \"deposit\" or \"repay\")");
     }
@@ -157,8 +161,12 @@ bank::memo_schema bank::parse_memo(const string& memo) {
 
     result.action = parts[0];
     if (result.action == "deposit") {
-        result.fee_token_id = std::stoll(parts[1]);
         check(parts.size() == 2, ERROR_INVALID_MEMO);
+        check(rams::utils::is_digit(parts[1]), ERROR_INVALID_MEMO);
+        result.fee_token_id = std::stoll(parts[1]);
+    } else if (result.action == "repay") {
+        check(parts.size() == 2, ERROR_INVALID_MEMO);
+        result.repay_account = rams::utils::parse_name(parts[1]);
     }
     return result;
 }
@@ -235,10 +243,10 @@ void bank::do_withdraw_ram(const name& owner, const extended_asset& ext_in, cons
     statlog.send(stat.deposited_bytes, stat.used_bytes);
 }
 
-void bank::do_repay_ram(const name& owner, const int64_t bytes, const string& memo) {
+void bank::do_repay_ram(const name& owner, const name& repay_account, const int64_t bytes, const string& memo) {
     check(bytes > 0, "rambank.eos::repay: cannot deposit negative byte");
 
-    const auto& borrow = _borrow.get(owner.value, "rambank.eos::repay: [borrows] does not exists");
+    const auto& borrow = _borrow.get(repay_account.value, "rambank.eos::repay: [borrows] does not exists");
     check(borrow.bytes > 0, "rambank.eos::repay: the outstanding balance is zero");
 
     int64_t refund_bytes = 0;

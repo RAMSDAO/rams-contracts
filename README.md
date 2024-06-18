@@ -125,8 +125,8 @@ $ cleos push action stram.eos transfer '{"from": "tester1", "to": "rambank.eos",
 $ cleos push action rambank.eos borrow '{"bytes": 1024, "contract": "borrower1"}' -p rambank.eos
 
 # repay @user
-# Fixed memo (repay)
-$ cleos push action eosio ramtranser '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "repay"}' -p tester1
+# memo (repay,<repay_account>)
+$ cleos push action eosio ramtranser '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "repay,tester1"}' -p tester1
 
 # transfer interest token @user
 # Fixed memo (deposit)
