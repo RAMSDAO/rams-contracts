@@ -298,7 +298,7 @@ describe('rams', () => {
         test('unsupported fee token', async () => {
             const pay = 1000
             const action = contracts.sats.actions
-                .transfer(['account1', 'rambank.eos', `${pay} SATS`, 'deposit,1'])
+                .transfer(['account1', 'rambank.eos', `${pay} SATS`, 'deposit'])
                 .send('account1@active')
             await expectToThrow(action, 'eosio_assert: rambank.eos::deposit: unsupported fee token')
         })
@@ -444,7 +444,7 @@ describe('rams', () => {
 
         test('no lending, no interest transferred', async () => {
             const action = contracts.sats.actions
-                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit,1'])
+                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit'])
                 .send('account2@active')
             await expectToThrow(action, 'eosio_assert: rambank.eos::deposit: no lending, no interest transferred')
         })
@@ -474,7 +474,7 @@ describe('rams', () => {
             await contracts.rambank.actions.borrow([1, 'account2']).send('rambank.eos@active')
             // transfer interest
             await contracts.sats.actions
-                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit,1'])
+                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit'])
                 .send('account2@active')
             // claim
             blockchain.addTime(TimePointSec.from(600))

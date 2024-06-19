@@ -10,7 +10,6 @@ using std::string;
 // Error messages
 static string ERROR_RAM_TRANSFER_INVALID_MEMO
     = "rambank.eos: invalid memo (ex: \"deposit\" or \"repay,<repay_account>\"";
-static string ERROR_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"deposit,<fee_token_id>\"";
 class [[eosio::contract("rambank.eos")]] bank : public contract {
    public:
     using contract::contract;
@@ -19,7 +18,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     struct memo_schema {
         string action;
-        uint64_t fee_token_id;
         name repay_account;
     };
 
@@ -234,14 +232,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     // private method
     uint64_t next_id(const name& key);
 
-    memo_schema parse_memo(const string& memo);
-
     void do_deposit_ram(const name& owner, const int64_t bytes, const string& memo);
 
     void do_withdraw_ram(const name& owner, const extended_asset& ext_in, const string& memo);
 
-    void do_deposit_fee(const uint64_t fee_token_id, const name& owner, const extended_asset& ext_in,
-                        const string& memo);
+    void do_deposit_fee(const name& owner, const extended_asset& ext_in, const string& memo);
 
     void do_repay_ram(const name& owner, const name& do_repay_ram, const int64_t bytes, const string& memo);
 

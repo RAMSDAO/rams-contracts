@@ -138,37 +138,12 @@ void bank::on_transfer(const name& from, const name& to, const asset& quantity, 
 
     const name contract = get_first_receiver();
     extended_asset ext_in = {quantity, contract};
-    const auto parsed_memo = parse_memo(memo);
 
-    if (parsed_memo.action == "deposit") {
-        do_deposit_fee(parsed_memo.fee_token_id, from, ext_in, memo);
+    if (memo == "deposit") {
+        do_deposit_fee(from, ext_in, memo);
     } else {
         do_withdraw_ram(from, ext_in, memo);
     }
-}
-
-// Memo schemas
-// ============
-// Deposit: `deposit,<fee_token_id>` (ex: "deposit,1")
-// Withdrawal: `` (empty)
-bank::memo_schema bank::parse_memo(const string& memo) {
-    if (memo == "") return {};
-    const vector<string> parts = rams::utils::split(memo, ",");
-    const string action = parts[0];
-
-    // memo result
-    bank::memo_schema result;
-
-    result.action = parts[0];
-    if (result.action == "deposit") {
-        check(parts.size() == 2, ERROR_INVALID_MEMO);
-        check(rams::utils::is_digit(parts[1]), ERROR_INVALID_MEMO);
-        result.fee_token_id = std::stoll(parts[1]);
-    } else if (result.action == "repay") {
-        check(parts.size() == 2, ERROR_INVALID_MEMO);
-        result.repay_account = rams::utils::parse_name(parts[1]);
-    }
-    return result;
 }
 
 void bank::do_deposit_ram(const name& owner, const int64_t bytes, const string& memo) {
@@ -281,12 +256,12 @@ void bank::do_repay_ram(const name& owner, const name& repay_account, const int6
     statlog.send(stat.deposited_bytes, stat.used_bytes);
 }
 
-void bank::do_deposit_fee(const uint64_t fee_token_id, const name& owner, const extended_asset& ext_in,
-                          const string& memo) {
+void bank::do_deposit_fee(const name& owner, const extended_asset& ext_in, const string& memo) {
     check(ext_in.quantity.amount > 0, "rambank.eos::deposit: cannot deposit negative");
     // check support fee token
-    auto fee_token_itr = _fee_token.require_find(fee_token_id, "rambank.eos::deposit: unsupported fee token");
-    check(fee_token_itr->token == ext_in.get_extended_symbol(), "rambank.eos::deposit: contract or symbol mismatch");
+    auto fee_token_idx = _fee_token.get_index<"bytoken"_n>();
+    auto fee_token_itr = fee_token_idx.require_find(get_extended_symbol_key(ext_in.get_extended_symbol()),
+                                                    "rambank.eos::deposit: unsupported fee token");
 
     // verify that the fee token matches
     auto borrow_itr = _borrow.find(owner.value);

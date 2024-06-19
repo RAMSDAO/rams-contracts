@@ -116,7 +116,7 @@ cleos get table stram.eos tester1 accounts
 ```bash
 # deposit @user
 # Fixed memo (deposit)
-$ cleos push action eosio ramtranser '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "deposit"}' -p tester1
+$ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "deposit"}' -p tester1
 
 # withdraw user@
 $ cleos push action stram.eos transfer '{"from": "tester1", "to": "rambank.eos", "quantity": "1024 STRAM", "memo": ""}' -p tester1
@@ -126,7 +126,7 @@ $ cleos push action rambank.eos borrow '{"bytes": 1024, "contract": "borrower1"}
 
 # repay @user
 # memo (repay,<repay_account>)
-$ cleos push action eosio ramtranser '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "repay,tester1"}' -p tester1
+$ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "repay,tester1"}' -p tester1
 
 # transfer interest token @user
 # Fixed memo (deposit)
@@ -170,5 +170,5 @@ $ cleos push action strampoolram claim '{"owner", "tester1"}' -p tester1
 
 ```bash
 cleos get table strampoolram strampoolram rewards
-cleos get table strampoolram strampoolram userrewards
+cleos get table strampoolram 1 userrewards
 ```
