@@ -142,7 +142,11 @@ $ cleos push action sat.eos transfer '{"from": "tester1", "to": "rambank.eos", "
 $ cleos push action rambank.eos updatestatus '{"disabled_deposit": false, "disabled_withdraw": false }' -p rambank.eos
 
 # updateratio @rambank.eos
-$ cleos push action rambank.eos updateratio '["tester1", "tester2", "100 RAMS", ""]' -p rambank.eos
+$ cleos push action rambank.eos updateratio '{"deposit_fee_ratio": 0, "withdraw_fee_ratio": 0, "reward_dao_ratio": 2000, "usage_limit_ratio": 9000 }' -p rambank.eos
+
+# maxdeposit @rambank.eos
+$ cleos push action rambank.eos maxdeposit '{"max_deposit_limit": 115964116992}' -p rambank.eos
+
 
 # addrenttoken @rambank.eos
 $ cleos push action rambank.eos addrenttoken '{"token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos

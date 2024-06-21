@@ -37,12 +37,13 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      *
      **/
     struct [[eosio::table("config")]] config_row {
-        bool disabled_deposit;
-        bool disabled_withdraw;
-        uint16_t deposit_fee_ratio;
-        uint16_t withdraw_fee_ratio;
-        uint16_t reward_pool_ratio;
-        uint16_t withdraw_limit_ratio;
+        bool disabled_deposit = false;
+        bool disabled_withdraw = false;
+        uint16_t deposit_fee_ratio = 0;
+        uint16_t withdraw_fee_ratio = 0;
+        uint64_t max_deposit_limit = 115964116992LL;
+        uint16_t reward_dao_ratio = 2000;
+        uint16_t usage_limit_ratio = 9000;
     };
     typedef eosio::singleton<"config"_n, config_row> config_table;
 
@@ -92,6 +93,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t primary_key() const { return id; }
         uint128_t by_token() const { return get_extended_symbol_key(token); }
     };
+
     typedef eosio::multi_index<
         "renttokens"_n, rent_token_row,
         eosio::indexed_by<"bytoken"_n, const_mem_fun<rent_token_row, uint128_t, &rent_token_row::by_token>>>
@@ -113,6 +115,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     typedef eosio::multi_index<"rents"_n, rent_row> rent_table;
 
     /**
+     * Update max deposit limit action.
+     *
+     * - **authority**: `get_self()`
+     *
+     * @param max_deposit_limit - maximum deposit limit
+     *
+     */
+    [[eosio::action]]
+    void maxdeposit(const uint64_t max_deposit_limit);
+
+    /**
      * Update status action.
      *
      * @details Modifying Global Status.
@@ -131,14 +144,14 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      *
      * @param deposit_fee_ratio - deposit deductible expense ratio
      * @param withdraw_fee_ratio - withdraw deductible expense ratio
-     * @param reward_pool_ratio - the proportion of rewards allocated to the RAM pool, with the remaining rewards
-     * transferred to the DAO.
-     * @param withdraw_limit_ratio - limit the RAM extraction when the usage rate exceeds a certain threshold.
+     * @param reward_dao_ratio - the proportion of rewards allocated to the DO, with the remaining rewards
+     * transferred to the RAM pool.
+     * @param usage_limit_ratio - limit the RAM extraction when the usage rate exceeds a certain threshold.
      *
      */
     [[eosio::action]]
     void updateratio(const uint16_t deposit_fee_ratio, const uint16_t withdraw_fee_ratio,
-                     const uint16_t reward_pool_ratio, const uint16_t withdraw_limit_ratio);
+                     const uint16_t reward_dao_ratio, const uint16_t usage_limit_ratio);
 
     /**
      * Add rent token action.
@@ -207,6 +220,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void rewardlog(const extended_symbol& token, const uint64_t stake_stram_reward, const uint64_t dao_reward) {
+        require_auth(get_self());
+    }
+
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
@@ -221,6 +239,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &bank::borrowlog>;
     using repaylog_action = eosio::action_wrapper<"repaylog"_n, &bank::repaylog>;
     using statlog_action = eosio::action_wrapper<"statlog"_n, &bank::statlog>;
+    using rewardlog_action = eosio::action_wrapper<"rewardlog"_n, &bank::rewardlog>;
 
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {

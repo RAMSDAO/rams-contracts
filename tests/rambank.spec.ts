@@ -290,21 +290,23 @@ describe('rams', () => {
                 disabled_withdraw: true,
                 deposit_fee_ratio: 0,
                 withdraw_fee_ratio: 0,
-                reward_pool_ratio: 0,
-                withdraw_limit_ratio: 0,
+                max_deposit_limit: "115964116992",
+                reward_dao_ratio: 2000,
+                usage_limit_ratio: 9000,
             })
         })
 
         test('updateratio', async () => {
-            await contracts.rambank.actions.updateratio([30, 30, 8000, 9000]).send('rambank.eos@active')
+            await contracts.rambank.actions.updateratio([30, 30, 2000, 9000]).send('rambank.eos@active')
             const config = rambank_eos.getConfig()
             expect(config).toEqual({
                 disabled_deposit: true,
                 disabled_withdraw: true,
                 deposit_fee_ratio: 30,
                 withdraw_fee_ratio: 30,
-                reward_pool_ratio: 8000,
-                withdraw_limit_ratio: 9000,
+                max_deposit_limit: "115964116992",
+                reward_dao_ratio: 2000,
+                usage_limit_ratio: 9000,
             })
         })
 
@@ -332,8 +334,9 @@ describe('rams', () => {
                 disabled_withdraw: true,
                 deposit_fee_ratio: 30,
                 withdraw_fee_ratio: 30,
-                reward_pool_ratio: 8000,
-                withdraw_limit_ratio: 9000,
+                max_deposit_limit: "115964116992",
+                reward_dao_ratio: 2000,
+                usage_limit_ratio: 9000,
             })
         })
 
@@ -420,8 +423,9 @@ describe('rams', () => {
                 disabled_withdraw: false,
                 deposit_fee_ratio: 30,
                 withdraw_fee_ratio: 30,
-                reward_pool_ratio: 8000,
-                withdraw_limit_ratio: 9000,
+                max_deposit_limit: "115964116992",
+                reward_dao_ratio: 2000,
+                usage_limit_ratio: 9000,
             })
         })
 
@@ -514,26 +518,30 @@ describe('rams', () => {
             await contracts.sats.actions
                 .transfer(['account2', 'rambank.eos', '100000 SATS', 'rent,account2'])
                 .send('account2@active')
-            
+
             const rentTokens = rambank_eos.getRentToken()
-            expect(rentTokens).toEqual([{
-                id: 1,
-                token: {
-                    contract: 'sats.eos',
-                    sym: '0,SATS',
+            expect(rentTokens).toEqual([
+                {
+                    id: 1,
+                    token: {
+                        contract: 'sats.eos',
+                        sym: '0,SATS',
+                    },
+                    enabled: true,
+                    total_rent_received: 100000,
                 },
-                enabled: true,
-                total_rent_received: 100000,
-            }])
+            ])
 
             const rent = rambank_eos.getRent('account2')
-            expect(rent).toEqual([{
-                id: 1,
-                total_rent_received: {
-                    contract: 'sats.eos',
-                    quantity: '100000 SATS',
-                }
-            }])
+            expect(rent).toEqual([
+                {
+                    id: 1,
+                    total_rent_received: {
+                        contract: 'sats.eos',
+                        quantity: '100000 SATS',
+                    },
+                },
+            ])
             // claim
             blockchain.addTime(TimePointSec.from(600))
             const expect_user_reward = streward_eos.getAccountRewardAmount(1, 'account1', 600)

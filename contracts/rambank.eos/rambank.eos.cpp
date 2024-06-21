@@ -3,7 +3,7 @@
 #include <streward.eos/streward.eos.hpp>
 #include <utils/utils.hpp>
 
-//@self
+//@get_self()
 [[eosio::action]]
 void bank::addrenttoken(const extended_symbol& token) {
     require_auth(get_self());
@@ -33,7 +33,7 @@ void bank::addrenttoken(const extended_symbol& token) {
     addtokenlog.send(rent_token_id, token);
 }
 
-//@self
+//@get_self()
 [[eosio::action]]
 void bank::tokenstatus(const uint64_t rent_token_id, const bool enabled) {
     require_auth(get_self());
@@ -50,33 +50,46 @@ void bank::tokenstatus(const uint64_t rent_token_id, const bool enabled) {
     statuslog.send(rent_token_id, enabled);
 }
 
+//@get_self()
+[[eosio::action]]
+void bank::maxdeposit(const uint64_t max_deposit_limit) {
+    require_auth(get_self());
+    check(max_deposit_limit > 0, "rambank.eos::maxdeposit: max_deposit_limit must be greater than 0");
+    config_row config = _config.get_or_default(config_row());
+
+    config.max_deposit_limit = max_deposit_limit;
+    _config.set(config, get_self());
+}
+
+//@get_self()
 [[eosio::action]]
 void bank::updatestatus(const bool disabled_deposit, const bool disabled_withdraw) {
     require_auth(get_self());
 
-    config_row config = _config.get_or_default();
+    config_row config = _config.get_or_default(config_row());
 
     config.disabled_deposit = disabled_deposit;
     config.disabled_withdraw = disabled_withdraw;
     _config.set(config, get_self());
 }
 
+//@get_self()
 [[eosio::action]]
 void bank::updateratio(const uint16_t deposit_fee_ratio, const uint16_t withdraw_fee_ratio,
-                       const uint16_t reward_pool_ratio, const uint16_t withdraw_limit_ratio) {
+                       const uint16_t reward_dao_ratio, const uint16_t usage_limit_ratio) {
     require_auth(get_self());
 
     check(deposit_fee_ratio <= 5000, "rambank.eos::updateratio: deposit_fee_ratio must be <= 5000");
     check(withdraw_fee_ratio <= 5000, "rambank.eos::updateratio: withdraw_fee_ratio must be <= 5000");
     check(withdraw_fee_ratio <= RATIO_PRECISION, "rambank.eos::updateratio: invalid reward_pool_ratio");
-    check(withdraw_limit_ratio <= RATIO_PRECISION, "rambank.eos::updateratio: invalid withdraw_limit_ratio");
+    check(usage_limit_ratio <= RATIO_PRECISION, "rambank.eos::updateratio: invalid withdraw_limit_ratio");
 
-    config_row config = _config.get_or_default();
+    config_row config = _config.get_or_default(config_row());
 
     config.withdraw_fee_ratio = withdraw_fee_ratio;
-    config.reward_pool_ratio = reward_pool_ratio;
+    config.reward_dao_ratio = reward_dao_ratio;
     config.deposit_fee_ratio = deposit_fee_ratio;
-    config.withdraw_limit_ratio = withdraw_limit_ratio;
+    config.usage_limit_ratio = usage_limit_ratio;
 
     _config.set(config, get_self());
 }
@@ -162,9 +175,12 @@ void bank::on_transfer(const name& from, const name& to, const asset& quantity, 
 void bank::do_deposit_ram(const name& owner, const int64_t bytes, const string& memo) {
     check(bytes > 0, "rambank.eos::deposit: cannot deposit negative byte");
 
-    bank::config_row config = _config.get_or_default();
+    bank::config_row config = _config.get_or_default(config_row());
     check(!config.disabled_deposit, "rambank.eos::deposit: deposit has been suspended");
 
+    bank::stat_row stat = _stat.get_or_default();
+    check(stat.deposited_bytes + bytes <= config.max_deposit_limit,
+          "rambank.eos::deposit: RAM has exceeded the maximum amount of storage");
     // transfer to ram container
     ram_transfer(get_self(), RAM_CONTAINER, bytes, "deposit ram");
 
@@ -182,7 +198,6 @@ void bank::do_deposit_ram(const name& owner, const int64_t bytes, const string& 
     }
 
     // update stat
-    bank::stat_row stat = _stat.get_or_default();
     stat.deposited_bytes += bytes;
     _stat.set(stat, get_self());
 
@@ -198,12 +213,12 @@ void bank::do_withdraw_ram(const name& owner, const extended_asset& ext_in, cons
     check(ext_in.contract == STRAM_EOS && ext_in.quantity.symbol == STRAM,
           "rambank.eos::withdraw: contract or symbol mismatch");
     check(ext_in.quantity.amount > 0, "rambank.eos::withdraw: cannot withdraw negative");
-    bank::config_row config = _config.get_or_default();
+    bank::config_row config = _config.get_or_default(config_row());
     bank::stat_row stat = _stat.get_or_default();
     check(!config.disabled_withdraw, "rambank.eos::withdraw: withdraw has been suspended");
-    check(config.withdraw_limit_ratio == 0
+    check(config.usage_limit_ratio == 0
               || stat.used_bytes * RATIO_PRECISION / (stat.deposited_bytes - ext_in.quantity.amount)
-                     < config.withdraw_limit_ratio,
+                     < config.usage_limit_ratio,
           "rambank.eos::withdraw: liquidity depletion");
 
     auto withdraw_fee = ext_in * config.withdraw_fee_ratio / RATIO_PRECISION;
@@ -300,14 +315,17 @@ void bank::do_deposit_rent(const name& owner, const name& borrower, const extend
     }
 
     config_row config = _config.get();
-    auto to_pool = ext_in * config.reward_pool_ratio / RATIO_PRECISION;
-    auto to_dao = ext_in - to_pool;
-    if (to_pool.quantity.amount > 0) {
-        token_transfer(get_self(), POOL_REWARD_CONTAINER, to_pool, "reward");
+    auto dao_reward = ext_in * config.reward_dao_ratio / RATIO_PRECISION;
+    auto stake_stram_reward = ext_in - dao_reward;
+    if (stake_stram_reward.quantity.amount > 0) {
+        token_transfer(get_self(), POOL_REWARD_CONTAINER, stake_stram_reward, "reward");
     }
-    if (to_dao.quantity.amount > 0) {
-        token_transfer(get_self(), DAO_REWARD_CONTAINER, to_dao, "reward");
+    if (dao_reward.quantity.amount > 0) {
+        token_transfer(get_self(), DAO_REWARD_CONTAINER, dao_reward, "reward");
     }
+    bank::rewardlog_action rewardlog(get_self(), {get_self(), "active"_n});
+    rewardlog.send(stake_stram_reward.get_extended_symbol(), stake_stram_reward.quantity.amount,
+                   dao_reward.quantity.amount);
 }
 
 void bank::token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo) {

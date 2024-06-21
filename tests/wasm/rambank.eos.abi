@@ -94,11 +94,15 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "reward_pool_ratio",
+                    "name": "max_deposit_limit",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward_dao_ratio",
                     "type": "uint16"
                 },
                 {
-                    "name": "withdraw_limit_ratio",
+                    "name": "usage_limit_ratio",
                     "type": "uint16"
                 }
             ]
@@ -136,6 +140,16 @@
                 {
                     "name": "contract",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "maxdeposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "max_deposit_limit",
+                    "type": "uint64"
                 }
             ]
         },
@@ -189,6 +203,24 @@
                 },
                 {
                     "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "rewardlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "stake_stram_reward",
+                    "type": "uint64"
+                },
+                {
+                    "name": "dao_reward",
                     "type": "uint64"
                 }
             ]
@@ -262,11 +294,11 @@
                     "type": "uint16"
                 },
                 {
-                    "name": "reward_pool_ratio",
+                    "name": "reward_dao_ratio",
                     "type": "uint16"
                 },
                 {
-                    "name": "withdraw_limit_ratio",
+                    "name": "usage_limit_ratio",
                     "type": "uint16"
                 }
             ]
@@ -335,8 +367,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "maxdeposit",
+            "type": "maxdeposit",
+            "ricardian_contract": ""
+        },
+        {
             "name": "repaylog",
             "type": "repaylog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rewardlog",
+            "type": "rewardlog",
             "ricardian_contract": ""
         },
         {

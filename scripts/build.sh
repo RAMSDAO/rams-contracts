@@ -36,7 +36,18 @@ cleos set account permission rambank.eos active '{
      { "permission": { "actor": "rambank.eos", "permission": "eosio.code" }, "weight": 1 }
     ]
 }' -p rambank.eos@active;
-
+cleos set account permission stram.eos active '{
+    "threshold": 1,
+    "accounts": [
+     { "permission": { "actor": "stram.eos", "permission": "eosio.code" }, "weight": 1 }
+    ]
+}' -p stram.eos@active;
+cleos set account permission strampoolram active '{
+    "threshold": 1,
+    "accounts": [
+     { "permission": { "actor": "strampoolram", "permission": "eosio.code" }, "weight": 1 }
+    ]
+}' -p strampoolram@active;
 cleos set account permission ramdeposit11 active '{
     "threshold": 1,
     "accounts": [
