@@ -10,6 +10,8 @@ using std::string;
 // Error messages
 static string ERROR_RAM_TRANSFER_INVALID_MEMO
     = "rambank.eos: invalid memo (ex: \"deposit\" or \"repay,<repay_account>\"";
+
+static string ERROR_TRANSFER_TOKEN_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"deposit,<borrower>\"";
 class [[eosio::contract("rambank.eos")]] bank : public contract {
    public:
     using contract::contract;
@@ -20,21 +22,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         string action;
         name repay_account;
     };
-
-    /**
-     * @brief global id table.
-     * @scope get_self()
-     *
-     * @field key - the name of the next ID
-     * @field next_id - the next ID for the key
-     *
-     **/
-    struct [[eosio::table]] global_id_row {
-        name key;
-        uint64_t next_id;
-        uint64_t primary_key() const { return key.value; }
-    };
-    typedef multi_index<"global.id"_n, global_id_row> global_id_table;
 
     /**
      * @brief config table.
@@ -78,7 +65,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      * @scope get_self()
      *
      * @field account - the account that borrowed RAM
-     * @field fee_token - interest token
      * @field bytes - the amount of RAM borrowed.
      *
      **/
@@ -90,23 +76,41 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     typedef eosio::multi_index<"borrows"_n, borrow_row> borrow_table;
 
     /**
-     * @brief supported interest currencies table.
+     * @brief supported rent currencies table.
      * @scope get_self()
      *
      * @field id - primary key
-     * @field token - interest currencies
+     * @field token - rent currencies
+     * @field total_rent_received - total rent received
      *
      **/
-    struct [[eosio::table]] fee_token_row {
+    struct [[eosio::table]] rent_token_row {
         uint64_t id;
         extended_symbol token;
+        uint64_t total_rent_received;
+        bool enabled;
         uint64_t primary_key() const { return id; }
         uint128_t by_token() const { return get_extended_symbol_key(token); }
     };
     typedef eosio::multi_index<
-        "feetokens"_n, fee_token_row,
-        eosio::indexed_by<"bytoken"_n, const_mem_fun<fee_token_row, uint128_t, &fee_token_row::by_token>>>
-        fee_token_table;
+        "renttokens"_n, rent_token_row,
+        eosio::indexed_by<"bytoken"_n, const_mem_fun<rent_token_row, uint128_t, &rent_token_row::by_token>>>
+        rent_token_table;
+
+    /**
+     * @brief rent table.
+     * @scope owner
+     *
+     * @field id - primary key
+     * @field total_rent_received - total rent received
+     *
+     **/
+    struct [[eosio::table]] rent_row {
+        uint64_t id;
+        extended_asset total_rent_received;
+        uint64_t primary_key() const { return id; }
+    };
+    typedef eosio::multi_index<"rents"_n, rent_row> rent_table;
 
     /**
      * Update status action.
@@ -137,24 +141,24 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
                      const uint16_t reward_pool_ratio, const uint16_t withdraw_limit_ratio);
 
     /**
-     * Add fee token action.
+     * Add rent token action.
      * - **authority**: `get_self()`
      *
-     * @param token - interest currencies.
+     * @param token - rent currencies.
      *
      */
     [[eosio::action]]
-    void addfeetoken(const extended_symbol& token);
+    void addrenttoken(const extended_symbol& token);
 
     /**
-     * Delete fee token action.
+     * Update rent token status action.
      * - **authority**: `admin.defi`
      *
-     * @param token - interest currencies.
+     * @param token - rent currencies.
      *
      */
     [[eosio::action]]
-    void delfeetoken(const uint64_t fee_token_id);
+    void tokenstatus(const uint64_t rent_token_id, const bool enabled);
 
     /**
      * Borrow RAM action.
@@ -169,12 +173,12 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     // logs
     [[eosio::action]]
-    void addtokenlog(const uint64_t& fee_token_id, const extended_symbol& token) {
+    void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token) {
         require_auth(get_self());
     }
 
     [[eosio::action]]
-    void deltokenlog(const uint64_t& fee_token_id) {
+    void statuslog(const uint64_t rent_token_id, const bool enabled) {
         require_auth(get_self());
     }
 
@@ -211,7 +215,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     // action wrappers
     using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &bank::addtokenlog>;
-    using deltokenlog_action = eosio::action_wrapper<"deltokenlog"_n, &bank::deltokenlog>;
+    using statuslog_action = eosio::action_wrapper<"statuslog"_n, &bank::statuslog>;
     using depositlog_action = eosio::action_wrapper<"depositlog"_n, &bank::depositlog>;
     using withdrawlog_action = eosio::action_wrapper<"withdrawlog"_n, &bank::withdrawlog>;
     using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &bank::borrowlog>;
@@ -223,20 +227,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         return (uint128_t{symbol.get_contract().value} << 64) | symbol.get_symbol().code().raw();
     }
     // table init
-    global_id_table _global_id = global_id_table(_self, _self.value);
-    fee_token_table _fee_token = fee_token_table(_self, _self.value);
+    rent_token_table _rent_token = rent_token_table(_self, _self.value);
     config_table _config = config_table(_self, _self.value);
     stat_table _stat = stat_table(_self, _self.value);
     borrow_table _borrow = borrow_table(_self, _self.value);
 
     // private method
-    uint64_t next_id(const name& key);
-
     void do_deposit_ram(const name& owner, const int64_t bytes, const string& memo);
 
     void do_withdraw_ram(const name& owner, const extended_asset& ext_in, const string& memo);
 
-    void do_deposit_fee(const name& owner, const extended_asset& ext_in, const string& memo);
+    void do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo);
 
     void do_repay_ram(const name& owner, const name& do_repay_ram, const int64_t bytes, const string& memo);
 

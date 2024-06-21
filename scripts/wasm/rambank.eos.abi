@@ -4,7 +4,7 @@
     "types": [],
     "structs": [
         {
-            "name": "addfeetoken",
+            "name": "addrenttoken",
             "base": "",
             "fields": [
                 {
@@ -18,7 +18,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "fee_token_id",
+                    "name": "rent_token_id",
                     "type": "uint64"
                 },
                 {
@@ -104,26 +104,6 @@
             ]
         },
         {
-            "name": "delfeetoken",
-            "base": "",
-            "fields": [
-                {
-                    "name": "fee_token_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "deltokenlog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "fee_token_id",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
             "name": "depositlog",
             "base": "",
             "fields": [
@@ -160,7 +140,21 @@
             ]
         },
         {
-            "name": "fee_token_row",
+            "name": "rent_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_rent_received",
+                    "type": "extended_asset"
+                }
+            ]
+        },
+        {
+            "name": "rent_token_row",
             "base": "",
             "fields": [
                 {
@@ -170,20 +164,14 @@
                 {
                     "name": "token",
                     "type": "extended_symbol"
-                }
-            ]
-        },
-        {
-            "name": "global_id_row",
-            "base": "",
-            "fields": [
-                {
-                    "name": "key",
-                    "type": "name"
                 },
                 {
-                    "name": "next_id",
+                    "name": "total_rent_received",
                     "type": "uint64"
+                },
+                {
+                    "name": "enabled",
+                    "type": "bool"
                 }
             ]
         },
@@ -230,6 +218,34 @@
                 {
                     "name": "total_borrow",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "statuslog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rent_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "enabled",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "tokenstatus",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rent_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "enabled",
+                    "type": "bool"
                 }
             ]
         },
@@ -294,8 +310,8 @@
     ],
     "actions": [
         {
-            "name": "addfeetoken",
-            "type": "addfeetoken",
+            "name": "addrenttoken",
+            "type": "addrenttoken",
             "ricardian_contract": ""
         },
         {
@@ -314,16 +330,6 @@
             "ricardian_contract": ""
         },
         {
-            "name": "delfeetoken",
-            "type": "delfeetoken",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "deltokenlog",
-            "type": "deltokenlog",
-            "ricardian_contract": ""
-        },
-        {
             "name": "depositlog",
             "type": "depositlog",
             "ricardian_contract": ""
@@ -336,6 +342,16 @@
         {
             "name": "statlog",
             "type": "statlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "statuslog",
+            "type": "statuslog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "tokenstatus",
+            "type": "tokenstatus",
             "ricardian_contract": ""
         },
         {
@@ -370,15 +386,15 @@
             "key_types": []
         },
         {
-            "name": "feetokens",
-            "type": "fee_token_row",
+            "name": "rents",
+            "type": "rent_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
         },
         {
-            "name": "global.id",
-            "type": "global_id_row",
+            "name": "renttokens",
+            "type": "rent_token_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

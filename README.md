@@ -100,6 +100,12 @@ $ cleos push action stram.eos create '["ramstge.eos", "1000000000 RAMS"]' -p str
 
 # transfer @user
 $ cleos push action stram.eos transfer '["tester1", "tester2", "100 STRAM", ""]' -p tester1
+
+# pause transfer @get_self()
+$ cleos push action stram.eos pause '[]' -p stram.eos
+
+# unpause transfer @get_self()
+$ cleos push action stram.eos unpause '[]' -p stram.eos
 ```
 
 #### Viewing Table Information
@@ -129,8 +135,8 @@ $ cleos push action rambank.eos borrow '{"bytes": 1024, "contract": "borrower1"}
 $ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "repay,tester1"}' -p tester1
 
 # transfer interest token @user
-# Fixed memo (deposit)
-$ cleos push action sat.eos transfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "deposit"}' -p tester1
+# memo (rent,<borrower>)
+$ cleos push action sat.eos transfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "rent,tester1"}' -p tester1
 
 # updatestatus @rambank.eos
 $ cleos push action rambank.eos updatestatus '{"disabled_deposit": false, "disabled_withdraw": false }' -p rambank.eos
@@ -138,11 +144,11 @@ $ cleos push action rambank.eos updatestatus '{"disabled_deposit": false, "disab
 # updateratio @rambank.eos
 $ cleos push action rambank.eos updateratio '["tester1", "tester2", "100 RAMS", ""]' -p rambank.eos
 
-# addfeetoken @rambank.eos
-$ cleos push action rambank.eos addfeetoken '{"token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos
+# addrenttoken @rambank.eos
+$ cleos push action rambank.eos addrenttoken '{"token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos
 
-# delfeetoken @rambank.eos
-$ cleos push action rambank.eos delfeetoken '{"fee_token_id": 1}' -p rambank.eos
+#  @rambank.eos
+$ cleos push action rambank.eos tokenstatus '{"fee_token_id": 1, "enabled": true}' -p rambank.eos
 ```
 
 #### Viewing Table Information

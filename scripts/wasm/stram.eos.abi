@@ -28,6 +28,16 @@
             ]
         },
         {
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "enabled_transfer",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "create",
             "base": "",
             "fields": [
@@ -108,6 +118,11 @@
                     "type": "name"
                 }
             ]
+        },
+        {
+            "name": "pause",
+            "base": "",
+            "fields": []
         },
         {
             "name": "retire",
@@ -196,6 +211,11 @@
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "unpause",
+            "base": "",
+            "fields": []
         }
     ],
     "actions": [
@@ -220,6 +240,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "pause",
+            "type": "pause",
+            "ricardian_contract": ""
+        },
+        {
             "name": "retire",
             "type": "retire",
             "ricardian_contract": ""
@@ -238,12 +263,24 @@
             "name": "transferlog",
             "type": "transferlog",
             "ricardian_contract": ""
+        },
+        {
+            "name": "unpause",
+            "type": "unpause",
+            "ricardian_contract": ""
         }
     ],
     "tables": [
         {
             "name": "accounts",
             "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "config",
+            "type": "config_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

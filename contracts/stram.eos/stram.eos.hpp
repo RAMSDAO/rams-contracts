@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
+#include <eosio/singleton.hpp>
 #include <defines.hpp>
 
 using namespace eosio;
@@ -10,6 +11,18 @@ using std::string;
 class [[eosio::contract("stram.eos")]] stram : public contract {
    public:
     using contract::contract;
+
+    /**
+     * Pause transfer action.
+     */
+    [[eosio::action]]
+    void pause();
+
+    /**
+     * UnPause transfer action.
+     */
+    [[eosio::action]]
+    void unpause();
 
     /**
      * Create action.
@@ -146,6 +159,16 @@ class [[eosio::contract("stram.eos")]] stram : public contract {
     using transferlog_action = eosio::action_wrapper<"transferlog"_n, &stram::transferlog>;
     using tokenchange_action = eosio::action_wrapper<"tokenchange"_n, &stram::tokenchange>;
 
+    /**
+     * @brief config table.
+     * @scope get_self()
+     *
+     * @field disabled_deposit - deposit status
+     *
+     **/
+    struct [[eosio::table("config")]] config_row {
+        bool enabled_transfer = true;
+    };
     struct [[eosio::table]] account {
         asset balance;
 
@@ -160,6 +183,7 @@ class [[eosio::contract("stram.eos")]] stram : public contract {
         uint64_t primary_key() const { return supply.symbol.code().raw(); }
     };
 
+    typedef eosio::singleton<"config"_n, config_row> config_table;
     typedef eosio::multi_index<"accounts"_n, account> accounts;
     typedef eosio::multi_index<"stat"_n, currency_stats> stats;
 

@@ -1,5 +1,21 @@
 #include <stram.eos/stram.eos.hpp>
 
+void stram::pause() {
+    require_auth(get_self());
+    config_table _config(get_self(), get_self().value);
+    config_row config = _config.get_or_default();
+    config.enabled_transfer = false;
+    _config.set(config, get_self());
+}
+
+void stram::unpause() {
+    require_auth(get_self());
+    config_table _config(get_self(), get_self().value);
+    config_row config = _config.get_or_default();
+    config.enabled_transfer = true;
+    _config.set(config, get_self());
+}
+
 void stram::create(const name& issuer, const asset& maximum_supply) {
     require_auth(get_self());
 
@@ -67,6 +83,10 @@ void stram::retire(const asset& quantity, const string& memo) {
 }
 
 void stram::transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
+    config_table _config(get_self(), get_self().value);
+    auto config = _config.get_or_default(config_row());
+
+    check(config.enabled_transfer, "transfer suspended");
     check(from != to, "cannot transfer to self");
     if (!has_auth(from)) {
         require_auth("eosio"_n);

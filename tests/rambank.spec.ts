@@ -121,7 +121,12 @@ namespace rambank_eos {
         balance: ExtendedAsset
     }
 
-    interface FeeToken {
+    interface RentToken {
+        id: number
+        balance: ExtendedSymbol
+    }
+
+    interface Rent {
         id: number
         balance: ExtendedSymbol
     }
@@ -144,13 +149,20 @@ namespace rambank_eos {
         return contracts.rambank.tables.balance(scope).getTableRows()
     }
 
-    export function getFeeToken(): FeeToken[] {
-        return contracts.rambank.tables.feetokens().getTableRows()
+    export function getRentToken(): RentToken[] {
+        return contracts.rambank.tables.renttokens().getTableRows()
     }
+
+    export function getRent(account: string): Rent[] {
+        let scope = Name.from(account).value.value
+        return contracts.rambank.tables.rents(scope).getTableRows()
+    }
+
     export function depositCostWithFee(quantity: number): number {
         const config = getConfig()
         return quantity - Math.trunc((quantity * config.deposit_fee_ratio) / 10000)
     }
+
     export function withdrawCostWithFee(quantity: number): number {
         const config = getConfig()
         return quantity - Math.trunc((quantity * config.withdraw_fee_ratio) / 10000)
@@ -183,22 +195,27 @@ namespace streward_eos {
         return contracts.streward.tables.userrewards(UInt64.from(reward_id).value).getTableRow(key)
     }
     export function getAccountRewardAmount(reward_id: number, account: string, time_elapsed: number): number {
-        const PRECISION_FACTOR = 100000000;
+        const PRECISION_FACTOR = 100000000
         // rewards
         const reward = getReward(reward_id)
-        const balance = getTokenBalance(rewardbank.name.toString(), reward.token.contract, Asset.Symbol.from(reward.token.sym).code.toString())
+        const balance = getTokenBalance(
+            rewardbank.name.toString(),
+            reward.token.contract,
+            Asset.Symbol.from(reward.token.sym).code.toString()
+        )
         // reward_per_second
-        const reward_per_second = Math.trunc(balance * PRECISION_FACTOR / 259200)
+        const reward_per_second = Math.trunc((balance * PRECISION_FACTOR) / 259200)
         // reward_amount
-        const reward_amount = Math.min(balance, Math.trunc(time_elapsed * reward_per_second/ PRECISION_FACTOR))
+        const reward_amount = Math.min(balance, Math.trunc((time_elapsed * reward_per_second) / PRECISION_FACTOR))
         // increment acc_per_token
         const total_supply = getSupply('stram.eos', 'STRAM')
-        const incr_acc_per_token = Math.trunc(reward_amount * PRECISION_FACTOR/ total_supply)
+        const incr_acc_per_token = Math.trunc((reward_amount * PRECISION_FACTOR) / total_supply)
         // account reward
         const account_balance = getTokenBalance(account, 'stram.eos', 'STRAM')
         const user_reward = getUserReward(reward_id, account)
-        const debt = user_reward?.debt ?? 0;
-        const user_reward_amount=  Math.trunc((account_balance * (reward.acc_per_share + incr_acc_per_token)) / PRECISION_FACTOR) - debt
+        const debt = user_reward?.debt ?? 0
+        const user_reward_amount =
+            Math.trunc((account_balance * (reward.acc_per_share + incr_acc_per_token)) / PRECISION_FACTOR) - debt
         return user_reward_amount
     }
 }
@@ -243,29 +260,25 @@ describe('rams', () => {
 
             await expectToThrow(
                 contracts.rambank.actions
-                    .addfeetoken([{ sym: '0,SATS', contract: 'sats.eos' }])
+                    .addrenttoken([{ sym: '0,SATS', contract: 'sats.eos' }])
                     .send('account1@active'),
                 'missing required authority rambank.eos'
             )
 
             await expectToThrow(
                 contracts.rambank.actions
-                    .addfeetoken([{ sym: '0,SATS', contract: 'sats.eos' }])
+                    .addrenttoken([{ sym: '0,SATS', contract: 'sats.eos' }])
                     .send('account1@active'),
                 'missing required authority rambank.eos'
             )
 
             await expectToThrow(
-                contracts.rambank.actions
-                    .delfeetoken([1])
-                    .send('account1@active'),
+                contracts.rambank.actions.tokenstatus([1, false]).send('account1@active'),
                 'missing required authority rambank.eos'
             )
 
             await expectToThrow(
-                contracts.rambank.actions
-                    .borrow([1000, 'account2'])
-                    .send('account1@active'),
+                contracts.rambank.actions.borrow([1000, 'account2']).send('account1@active'),
                 'missing required authority rambank.eos'
             )
         })
@@ -295,12 +308,12 @@ describe('rams', () => {
             })
         })
 
-        test('unsupported fee token', async () => {
+        test('unsupported rent token', async () => {
             const pay = 1000
             const action = contracts.sats.actions
-                .transfer(['account1', 'rambank.eos', `${pay} SATS`, 'deposit'])
+                .transfer(['account1', 'rambank.eos', `${pay} SATS`, 'rent,account1'])
                 .send('account1@active')
-            await expectToThrow(action, 'eosio_assert: rambank.eos::deposit: unsupported fee token')
+            await expectToThrow(action, 'eosio_assert: rambank.eos::deposit_rent: unsupported rent token')
         })
 
         test('deposit suspended', async () => {
@@ -334,17 +347,28 @@ describe('rams', () => {
             expect(after_strams - before_strams).toEqual(rambank_eos.depositCostWithFee(pay))
         })
 
-        test('addfeetoken', async () => {
+        test('stram transfer suspended', async () => {
+            await contracts.stram.actions.pause([]).send('stram.eos@active')
+            await expectToThrow(
+                contracts.stram.actions.transfer(['account1', 'account2', '1.0000 STRAM', '']).send('account1@active'),
+                'eosio_assert: transfer suspended'
+            )
+            await contracts.stram.actions.unpause([]).send('stram.eos@active')
+        })
+
+        test('addrenttoken', async () => {
             await contracts.rambank.actions
-                .addfeetoken([{ sym: '0,SATS', contract: 'sats.eos' }])
+                .addrenttoken([{ sym: '0,SATS', contract: 'sats.eos' }])
                 .send('rambank.eos@active')
-            const feeTokens = rambank_eos.getFeeToken()
+            const feeTokens = rambank_eos.getRentToken()
             expect(feeTokens[0]).toEqual({
                 id: 1,
                 token: {
                     contract: 'sats.eos',
                     sym: '0,SATS',
                 },
+                enabled: true,
+                total_rent_received: 0,
             })
 
             const reward = streward_eos.getReward(1)
@@ -442,11 +466,25 @@ describe('rams', () => {
             })
         })
 
-        test('no lending, no interest transferred', async () => {
-            const action = contracts.sats.actions
-                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit'])
-                .send('account2@active')
-            await expectToThrow(action, 'eosio_assert: rambank.eos::deposit: no lending, no interest transferred')
+        test('no lending, no rent transferred', async () => {
+            await expectToThrow(
+                contracts.sats.actions
+                    .transfer(['account2', 'rambank.eos', '100000 SATS', 'rent,account2'])
+                    .send('account2@active'),
+                'eosio_assert: rambank.eos::deposit_rent: no lending, no rent transferred'
+            )
+        })
+
+        test('rent token status disabled', async () => {
+            await contracts.rambank.actions.tokenstatus([1, false]).send('rambank.eos@active')
+
+            await expectToThrow(
+                contracts.sats.actions
+                    .transfer(['account2', 'rambank.eos', '100000 SATS', 'rent,account2'])
+                    .send('account2@active'),
+                'eosio_assert: rambank.eos::deposit_rent: unsupported rent token'
+            )
+            await contracts.rambank.actions.tokenstatus([1, true]).send('rambank.eos@active')
         })
     })
 
@@ -472,10 +510,30 @@ describe('rams', () => {
         test('claim reward', async () => {
             // borrow
             await contracts.rambank.actions.borrow([1, 'account2']).send('rambank.eos@active')
-            // transfer interest
+            // transfer rent
             await contracts.sats.actions
-                .transfer(['account2', 'rambank.eos', '100000 SATS', 'deposit'])
+                .transfer(['account2', 'rambank.eos', '100000 SATS', 'rent,account2'])
                 .send('account2@active')
+            
+            const rentTokens = rambank_eos.getRentToken()
+            expect(rentTokens).toEqual([{
+                id: 1,
+                token: {
+                    contract: 'sats.eos',
+                    sym: '0,SATS',
+                },
+                enabled: true,
+                total_rent_received: 100000,
+            }])
+
+            const rent = rambank_eos.getRent('account2')
+            expect(rent).toEqual([{
+                id: 1,
+                total_rent_received: {
+                    contract: 'sats.eos',
+                    quantity: '100000 SATS',
+                }
+            }])
             // claim
             blockchain.addTime(TimePointSec.from(600))
             const expect_user_reward = streward_eos.getAccountRewardAmount(1, 'account1', 600)

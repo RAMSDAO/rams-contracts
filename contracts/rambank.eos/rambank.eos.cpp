@@ -5,40 +5,49 @@
 
 //@self
 [[eosio::action]]
-void bank::addfeetoken(const extended_symbol& token) {
+void bank::addrenttoken(const extended_symbol& token) {
     require_auth(get_self());
 
-    auto fee_token_idx = _fee_token.get_index<"bytoken"_n>();
-    auto fee_token_itr = fee_token_idx.find(get_extended_symbol_key(token));
-    check(fee_token_itr == fee_token_idx.end(), "rambank.eos::addfeetoken: fee token already exist");
+    auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
+    auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(token));
+    check(rent_token_itr == rent_token_idx.end(), "rambank.eos::addrenttoken: rent token already exist");
     // check token
     stram::get_supply(token.get_contract(), token.get_symbol().code());
 
-    auto fee_token_id = next_id("feetoken"_n);
-    _fee_token.emplace(get_self(), [&](auto& row) {
-        row.id = fee_token_id;
+    auto rent_token_id = _rent_token.available_primary_key();
+    if (rent_token_id == 0) {
+        rent_token_id = 1;
+    }
+    _rent_token.emplace(get_self(), [&](auto& row) {
+        row.id = rent_token_id;
         row.token = token;
+        row.enabled = true;
     });
 
     // save reward token
     streward::addreward_action addreward(STREWARD_EOS, {get_self(), "active"_n});
-    addreward.send(fee_token_id, token);
+    addreward.send(rent_token_id, token);
 
     // log
     bank::addtokenlog_action addtokenlog(get_self(), {get_self(), "active"_n});
-    addtokenlog.send(fee_token_id, token);
+    addtokenlog.send(rent_token_id, token);
 }
 
 //@self
 [[eosio::action]]
-void bank::delfeetoken(const uint64_t fee_token_id) {
+void bank::tokenstatus(const uint64_t rent_token_id, const bool enabled) {
     require_auth(get_self());
-    auto fee_token_itr = _fee_token.require_find(fee_token_id, "rambank.eos::delfeetoken: fee token does not exist");
-    _fee_token.erase(fee_token_itr);
+    auto rent_token_itr
+        = _rent_token.require_find(rent_token_id, "rambank.eos::tokenstatus: rent token does not exist");
+    check(rent_token_itr->enabled != enabled, "rambank.eos::tokenstatus: status no change");
+
+    _rent_token.modify(rent_token_itr, same_payer, [&](auto& row) {
+        row.enabled = enabled;
+    });
 
     // log
-    bank::deltokenlog_action deltokenlog(get_self(), {get_self(), "active"_n});
-    deltokenlog.send(fee_token_id);
+    bank::statuslog_action statuslog(get_self(), {get_self(), "active"_n});
+    statuslog.send(rent_token_id, enabled);
 }
 
 [[eosio::action]]
@@ -139,8 +148,12 @@ void bank::on_transfer(const name& from, const name& to, const asset& quantity, 
     const name contract = get_first_receiver();
     extended_asset ext_in = {quantity, contract};
 
-    if (memo == "deposit") {
-        do_deposit_fee(from, ext_in, memo);
+    const vector<string> parts = rams::utils::split(memo, ",");
+    if (parts.size() > 0 && parts[0] == "rent") {
+        auto borrower = rams::utils::parse_name(parts[1]);
+        check(parts.size() == 2, ERROR_TRANSFER_TOKEN_INVALID_MEMO);
+
+        do_deposit_rent(from, borrower, ext_in, memo);
     } else {
         do_withdraw_ram(from, ext_in, memo);
     }
@@ -256,16 +269,35 @@ void bank::do_repay_ram(const name& owner, const name& repay_account, const int6
     statlog.send(stat.deposited_bytes, stat.used_bytes);
 }
 
-void bank::do_deposit_fee(const name& owner, const extended_asset& ext_in, const string& memo) {
+void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
     check(ext_in.quantity.amount > 0, "rambank.eos::deposit: cannot deposit negative");
-    // check support fee token
-    auto fee_token_idx = _fee_token.get_index<"bytoken"_n>();
-    auto fee_token_itr = fee_token_idx.require_find(get_extended_symbol_key(ext_in.get_extended_symbol()),
-                                                    "rambank.eos::deposit: unsupported fee token");
+    // check support rent token
+    auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
+    auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(ext_in.get_extended_symbol()));
+    check(rent_token_itr != rent_token_idx.end() && rent_token_itr->enabled,
+          "rambank.eos::deposit_rent: unsupported rent token");
+    auto borrow_itr = _borrow.find(borrower.value);
+    check(borrow_itr != _borrow.end() && borrow_itr->bytes > 0,
+          "rambank.eos::deposit_rent: no lending, no rent transferred");
 
-    // verify that the fee token matches
-    auto borrow_itr = _borrow.find(owner.value);
-    check(borrow_itr->bytes > 0, "rambank.eos::deposit: no lending, no interest transferred");
+    // update rent token
+    rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {
+        row.total_rent_received += ext_in.quantity.amount;
+    });
+
+    // update rent
+    rent_table _rent(get_self(), borrower.value);
+    auto rent_itr = _rent.find(rent_token_itr->id);
+    if (rent_itr == _rent.end()) {
+        _rent.emplace(get_self(), [&](auto& row) {
+            row.id = rent_token_itr->id;
+            row.total_rent_received = ext_in;
+        });
+    } else {
+        _rent.modify(rent_itr, same_payer, [&](auto& row) {
+            row.total_rent_received += ext_in;
+        });
+    }
 
     config_row config = _config.get();
     auto to_pool = ext_in * config.reward_pool_ratio / RATIO_PRECISION;
@@ -295,19 +327,4 @@ void bank::issue(const extended_asset& value, const string& memo) {
 void bank::retire(const extended_asset& value, const string& memo) {
     stram::retire_action retire(value.contract, {get_self(), "active"_n});
     retire.send(value.quantity, memo);
-}
-
-uint64_t bank::next_id(const name& key) {
-    auto global_id_itr = _global_id.find(key.value);
-    if (global_id_itr != _global_id.end()) {
-        _global_id.modify(global_id_itr, same_payer, [&](auto& row) {
-            row.next_id++;
-        });
-    } else {
-        global_id_itr = _global_id.emplace(get_self(), [&](auto& row) {
-            row.key = key;
-            row.next_id = 2;
-        });
-    }
-    return global_id_itr->next_id - 1;
 }
