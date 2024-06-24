@@ -62,6 +62,13 @@ class [[eosio::contract("streward.eos")]] streward : public contract {
     typedef eosio::multi_index<"userrewards"_n, user_reward_row> user_reward_table;
 
     /**
+     * Update reward action.
+     * - **authority**: `rambank.eos`
+     */
+    [[eosio::action]]
+    void updatereward();
+
+    /**
      * Add reward token action.
      * - **authority**: `get_self()`
      *
@@ -93,6 +100,7 @@ class [[eosio::contract("streward.eos")]] streward : public contract {
     }
 
     using addreward_action = eosio::action_wrapper<"addreward"_n, &streward::addreward>;
+    using updatereward_action = eosio::action_wrapper<"updatereward"_n, &streward::updatereward>;
     using addrewardlog_action = eosio::action_wrapper<"addrewardlog"_n, &streward::addrewardlog>;
 
    private:

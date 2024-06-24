@@ -86,6 +86,11 @@
             ]
         },
         {
+            "name": "updatereward",
+            "base": "",
+            "fields": []
+        },
+        {
             "name": "user_reward_row",
             "base": "",
             "fields": [
@@ -126,6 +131,11 @@
         {
             "name": "claim",
             "type": "claim",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatereward",
+            "type": "updatereward",
             "ricardian_contract": ""
         }
     ],

@@ -184,6 +184,10 @@ void bank::do_deposit_ram(const name& owner, const int64_t bytes, const string& 
     // transfer to ram container
     ram_transfer(get_self(), RAM_CONTAINER, bytes, "deposit ram");
 
+    // settlement reward
+    streward::updatereward_action _updatereward(STREWARD_EOS, {get_self(), "active"_n});
+    _updatereward.send();
+
     // issue stram
     asset issue_amount = {bytes, STRAM};
     issue({issue_amount, STRAM_EOS}, "deposit ram");

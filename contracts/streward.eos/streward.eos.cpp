@@ -60,6 +60,18 @@ void streward::claim(const name& owner) {
     }
 }
 
+[[eosio::action]]
+void streward::updatereward() {
+    require_auth(RAMBANK_EOS);
+
+    auto current_time = current_time_point();
+    auto reward_itr = _reward.begin();
+    while (reward_itr != _reward.end()) {
+        update_reward(current_time, reward_itr);
+        reward_itr++;
+    }
+}
+
 [[eosio::on_notify("stram.eos::tokenchange")]]
 void streward::tokenchange(const extended_symbol& token, const name& owner, const uint64_t pre_amount,
                            const uint64_t now_amount) {
