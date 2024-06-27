@@ -1,0 +1,161 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addreward",
+            "base": "",
+            "fields": [
+                {
+                    "name": "reward_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "addrewardlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "reward_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "claim",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "extended_symbol",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "reward_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "acc_per_share",
+                    "type": "uint128"
+                },
+                {
+                    "name": "last_reward_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "total",
+                    "type": "uint64"
+                },
+                {
+                    "name": "balance",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "updatereward",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "user_reward_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "debt",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unclaimed",
+                    "type": "uint64"
+                },
+                {
+                    "name": "claimed",
+                    "type": "uint64"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addreward",
+            "type": "addreward",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addrewardlog",
+            "type": "addrewardlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claim",
+            "type": "claim",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatereward",
+            "type": "updatereward",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "rewards",
+            "type": "reward_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "userrewards",
+            "type": "user_reward_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

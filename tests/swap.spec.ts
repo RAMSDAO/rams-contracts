@@ -206,7 +206,6 @@ describe("rams", () => {
 
   describe("ramstge.eos", () => {
     test('init', async () => {
-      console.log("---", contracts.swaprams.actions)
       await contracts.swaprams.actions.init([true]).send("ramstge.eos@active");
       let config = swap_rams.getConfig();
       expect(config.disabled).toEqual(true);

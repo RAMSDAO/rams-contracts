@@ -28,6 +28,16 @@
             ]
         },
         {
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "enabled_transfer",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "create",
             "base": "",
             "fields": [
@@ -55,6 +65,20 @@
                 },
                 {
                     "name": "issuer",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "extended_symbol",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
+                },
+                {
+                    "name": "contract",
                     "type": "name"
                 }
             ]
@@ -96,6 +120,11 @@
             ]
         },
         {
+            "name": "pause",
+            "base": "",
+            "fields": []
+        },
+        {
             "name": "retire",
             "base": "",
             "fields": [
@@ -106,6 +135,28 @@
                 {
                     "name": "memo",
                     "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "tokenchange",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "pre_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "now_amount",
+                    "type": "uint64"
                 }
             ]
         },
@@ -130,6 +181,41 @@
                     "type": "string"
                 }
             ]
+        },
+        {
+            "name": "transferlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "to",
+                    "type": "name"
+                },
+                {
+                    "name": "quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "from_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "to_balance",
+                    "type": "asset"
+                },
+                {
+                    "name": "memo",
+                    "type": "string"
+                }
+            ]
+        },
+        {
+            "name": "unpause",
+            "base": "",
+            "fields": []
         }
     ],
     "actions": [
@@ -154,13 +240,33 @@
             "ricardian_contract": ""
         },
         {
+            "name": "pause",
+            "type": "pause",
+            "ricardian_contract": ""
+        },
+        {
             "name": "retire",
             "type": "retire",
             "ricardian_contract": ""
         },
         {
+            "name": "tokenchange",
+            "type": "tokenchange",
+            "ricardian_contract": ""
+        },
+        {
             "name": "transfer",
             "type": "transfer",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "transferlog",
+            "type": "transferlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "unpause",
+            "type": "unpause",
             "ricardian_contract": ""
         }
     ],
@@ -168,6 +274,13 @@
         {
             "name": "accounts",
             "type": "account",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "config",
+            "type": "config_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
