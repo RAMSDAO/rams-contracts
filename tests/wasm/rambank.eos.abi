@@ -74,6 +74,16 @@
             ]
         },
         {
+            "name": "claim",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                }
+            ]
+        },
+        {
             "name": "config_row",
             "base": "",
             "fields": [
@@ -108,6 +118,20 @@
             ]
         },
         {
+            "name": "deposit_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "depositlog",
             "base": "",
             "fields": [
@@ -117,15 +141,15 @@
                 },
                 {
                     "name": "bytes",
-                    "type": "int64"
+                    "type": "uint64"
                 },
                 {
                     "name": "fee",
-                    "type": "asset"
+                    "type": "uint64"
                 },
                 {
-                    "name": "output_amount",
-                    "type": "asset"
+                    "name": "deposited_bytes",
+                    "type": "uint64"
                 }
             ]
         },
@@ -181,6 +205,22 @@
                 },
                 {
                     "name": "total_rent_received",
+                    "type": "uint64"
+                },
+                {
+                    "name": "acc_per_share",
+                    "type": "uint128"
+                },
+                {
+                    "name": "last_reward_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "total_reward",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward_balance",
                     "type": "uint64"
                 },
                 {
@@ -318,6 +358,46 @@
             ]
         },
         {
+            "name": "user_reward_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "debt",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unclaimed",
+                    "type": "uint64"
+                },
+                {
+                    "name": "claimed",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "withdrawlog",
             "base": "",
             "fields": [
@@ -326,16 +406,16 @@
                     "type": "name"
                 },
                 {
-                    "name": "quantity",
-                    "type": "asset"
+                    "name": "bytes",
+                    "type": "uint64"
                 },
                 {
                     "name": "fee",
-                    "type": "asset"
+                    "type": "uint64"
                 },
                 {
-                    "name": "output_amount",
-                    "type": "int64"
+                    "name": "deposited_bytes",
+                    "type": "uint64"
                 }
             ]
         }
@@ -359,6 +439,11 @@
         {
             "name": "borrowlog",
             "type": "borrowlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claim",
+            "type": "claim",
             "ricardian_contract": ""
         },
         {
@@ -407,6 +492,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "withdraw",
+            "type": "withdraw",
+            "ricardian_contract": ""
+        },
+        {
             "name": "withdrawlog",
             "type": "withdrawlog",
             "ricardian_contract": ""
@@ -428,6 +518,13 @@
             "key_types": []
         },
         {
+            "name": "deposits",
+            "type": "deposit_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
             "name": "rents",
             "type": "rent_row",
             "index_type": "i64",
@@ -444,6 +541,13 @@
         {
             "name": "stat",
             "type": "stat_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "userrewards",
+            "type": "user_reward_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

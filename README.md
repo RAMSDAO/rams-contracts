@@ -19,9 +19,7 @@ RAM is not only the backbone of the EOS ecosystem, but also the key to innovatio
 | [ramstge.eos](https://bloks.io/account/ramstge.eos)   | Swap Contract                |
 | [rams.eos](https://bloks.io/account/rams.eos)         | Inscription Contract         |
 | [rambank.eos](https://bloks.io/account/rambank.eos)   | Lend Contract                |
-| [stram.eos](https://bloks.io/account/stram.eos)       | STRAM Token Contract         |
 | [ramdeposit11](https://bloks.io/account/ramdeposit11) | Ram Deposit Account          |
-| [stramreward1](https://bloks.io/account/stramreward1) | STRAM deposit reward Account |
 | [strampoolram](https://bloks.io/account/strampoolram) | STRAM reward contract        |
 
 ## Quickstart
@@ -90,31 +88,6 @@ cleos get table newrams.eos RAMS stat
 cleos get table newrams.eos tester1 accounts
 ```
 
-### `stram.eos`
-
-#### Actions
-
-```bash
-# create @stram.eos
-$ cleos push action stram.eos create '["ramstge.eos", "1000000000 RAMS"]' -p stram.eos
-
-# transfer @user
-$ cleos push action stram.eos transfer '["tester1", "tester2", "100 STRAM", ""]' -p tester1
-
-# pause transfer @get_self()
-$ cleos push action stram.eos pause '[]' -p stram.eos
-
-# unpause transfer @get_self()
-$ cleos push action stram.eos unpause '[]' -p stram.eos
-```
-
-#### Viewing Table Information
-
-```bash
-cleos get table stram.eos STRAM stat
-cleos get table stram.eos tester1 accounts
-```
-
 ### `rambank.eos`
 
 #### Actions
@@ -124,8 +97,8 @@ cleos get table stram.eos tester1 accounts
 # Fixed memo (deposit)
 $ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "deposit"}' -p tester1
 
-# withdraw user@
-$ cleos push action stram.eos transfer '{"from": "tester1", "to": "rambank.eos", "quantity": "1024 STRAM", "memo": ""}' -p tester1
+# withdraw @owner
+$ cleos push action rambank.eos withdraw '{"owner": "tester1", "bytes": 1024}' -p tester1
 
 # borrow @rambank.eos
 $ cleos push action rambank.eos borrow '{"bytes": 1024, "contract": "borrower1"}' -p rambank.eos
@@ -151,8 +124,11 @@ $ cleos push action rambank.eos maxdeposit '{"max_deposit_limit": 115964116992}'
 # addrenttoken @rambank.eos
 $ cleos push action rambank.eos addrenttoken '{"token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos
 
-#  @rambank.eos
+#  update rent token status @rambank.eos
 $ cleos push action rambank.eos tokenstatus '{"fee_token_id": 1, "enabled": true}' -p rambank.eos
+
+#  claim @owner
+$ cleos push action rambank.eos claim '{"owner", "tester1"}' -p tester1
 ```
 
 #### Viewing Table Information
@@ -160,25 +136,7 @@ $ cleos push action rambank.eos tokenstatus '{"fee_token_id": 1, "enabled": true
 ```bash
 cleos get table rambank.eos rambank.eos config
 cleos get table rambank.eos rambank.eos stat
-cleos get table rambank.eos rambank.eos feetokens
 cleos get table rambank.eos rambank.eos borrows -L tester1 -U tester1
-```
-
-### `strampoolram`
-
-#### Actions
-
-```bash
-# addreward @rambank.eos
-$ cleos push action strampoolram addreward '{"reward_id": 1, "token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos
-
-# claim @user
-$ cleos push action strampoolram claim '{"owner", "tester1"}' -p tester1
-```
-
-#### Viewing Table Information
-
-```bash
-cleos get table strampoolram strampoolram rewards
-cleos get table strampoolram 1 userrewards
+cleos get table rambank.eos rambank.eos renttokens
+cleos get table rambank.eos 1 userrewards
 ```

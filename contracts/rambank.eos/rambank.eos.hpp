@@ -1,4 +1,5 @@
 #pragma once
+
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
@@ -11,7 +12,7 @@ using std::string;
 static string ERROR_RAM_TRANSFER_INVALID_MEMO
     = "rambank.eos: invalid memo (ex: \"deposit\" or \"repay,<repay_account>\"";
 
-static string ERROR_TRANSFER_TOKEN_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"deposit,<borrower>\"";
+static string ERROR_TRANSFER_TOKEN_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"rent,<borrower>\"";
 class [[eosio::contract("rambank.eos")]] bank : public contract {
    public:
     using contract::contract;
@@ -69,6 +70,21 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      * @field bytes - the amount of RAM borrowed.
      *
      **/
+    struct [[eosio::table]] deposit_row {
+        name account;
+        uint64_t bytes;
+        uint64_t primary_key() const { return account.value; }
+    };
+    typedef eosio::multi_index<"deposits"_n, deposit_row> deposit_table;
+
+    /**
+     * @brief RAM borrowed by users table.
+     * @scope get_self()
+     *
+     * @field account - the account that borrowed RAM
+     * @field bytes - the amount of RAM borrowed.
+     *
+     **/
     struct [[eosio::table]] borrow_row {
         name account;
         uint64_t bytes;
@@ -89,6 +105,10 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t id;
         extended_symbol token;
         uint64_t total_rent_received;
+        uint128_t acc_per_share;
+        time_point_sec last_reward_time;
+        uint64_t total_reward;
+        uint64_t reward_balance;
         bool enabled;
         uint64_t primary_key() const { return id; }
         uint128_t by_token() const { return get_extended_symbol_key(token); }
@@ -105,7 +125,10 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      *
      * @field id - primary key
      * @field total_rent_received - total rent received
-     *
+     * @field acc_per_share - earnings per share of RAM held
+     * @field last_reward_time - timestamp of last reward update
+     * @field total - total amount of rewards
+     * @field balance - total amount of unclaimed rewards*
      **/
     struct [[eosio::table]] rent_row {
         uint64_t id;
@@ -113,6 +136,27 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t primary_key() const { return id; }
     };
     typedef eosio::multi_index<"rents"_n, rent_row> rent_table;
+
+    /**
+     * @brief user reward table.
+     * @scope get_self()
+     *
+     * @field owner - primary key
+     * @field token - reward token
+     * @field debt - amount of requested debt
+     * @field unclaimed - amount of unclaimed rewards
+     * @field claimed  - amount of claimed rewards
+     *
+     **/
+    struct [[eosio::table]] user_reward_row {
+        name owner;
+        extended_symbol token;
+        uint64_t debt;
+        uint64_t unclaimed;
+        uint64_t claimed;
+        uint64_t primary_key() const { return owner.value; }
+    };
+    typedef eosio::multi_index<"userrewards"_n, user_reward_row> user_reward_table;
 
     /**
      * Update max deposit limit action.
@@ -144,7 +188,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      *
      * @param deposit_fee_ratio - deposit deductible expense ratio
      * @param withdraw_fee_ratio - withdraw deductible expense ratio
-     * @param reward_dao_ratio - the proportion of rewards allocated to the DO, with the remaining rewards
+     * @param reward_dao_ratio - the proportion of rewards allocated to the DAO, with the remaining rewards
      * transferred to the RAM pool.
      * @param usage_limit_ratio - limit the RAM extraction when the usage rate exceeds a certain threshold.
      *
@@ -174,6 +218,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     void tokenstatus(const uint64_t rent_token_id, const bool enabled);
 
     /**
+     * Withdraw rams action.
+     * - **authority**: `owner`
+     *
+     * @param owner - get back ram account.
+     * @param bytes - bytes of RAM to withdraw.
+     *
+     */
+    [[eosio::action]]
+    void withdraw(const name& owner, const uint64_t bytes);
+
+    /**
      * Borrow RAM action.
      * - **authority**: `account`
      *
@@ -183,6 +238,16 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      */
     [[eosio::action]]
     void borrow(const uint64_t bytes, const name& contract);
+
+    /**
+     * Claim reward token action.
+     * - **authority**: `owner`
+     *
+     * @param owner - account to claim rewards
+     *
+     */
+    [[eosio::action]]
+    void claim(const name& owner);
 
     // logs
     [[eosio::action]]
@@ -196,12 +261,12 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     }
 
     [[eosio::action]]
-    void depositlog(const name& owner, const int64_t bytes, const asset& fee, const asset& output_amount) {
+    void depositlog(const name& owner, const uint64_t bytes, const uint64_t fee, const uint64_t deposited_bytes) {
         require_auth(get_self());
     }
 
     [[eosio::action]]
-    void withdrawlog(const name& owner, const asset& quantity, const asset& fee, const int64_t output_amount) {
+    void withdrawlog(const name& owner, const uint64_t bytes, const uint64_t fee, const uint64_t deposited_bytes) {
         require_auth(get_self());
     }
 
@@ -221,7 +286,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     }
 
     [[eosio::action]]
-    void rewardlog(const extended_symbol& token, const uint64_t stake_stram_reward, const uint64_t dao_reward) {
+    void rewardlog(const extended_symbol& token, const uint64_t stake_reward, const uint64_t dao_reward) {
         require_auth(get_self());
     }
 
@@ -250,21 +315,26 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     config_table _config = config_table(_self, _self.value);
     stat_table _stat = stat_table(_self, _self.value);
     borrow_table _borrow = borrow_table(_self, _self.value);
+    deposit_table _deposit = deposit_table(_self, _self.value);
 
     // private method
+    uint64_t get_balance(const name& owner, const extended_symbol& token);
+    void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
+    void ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo);
+
     void do_deposit_ram(const name& owner, const int64_t bytes, const string& memo);
-
-    void do_withdraw_ram(const name& owner, const extended_asset& ext_in, const string& memo);
-
     void do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo);
-
     void do_repay_ram(const name& owner, const name& do_repay_ram, const int64_t bytes, const string& memo);
 
-    void issue(const extended_asset& value, const string& memo);
+    void token_change(const name& owner, const uint64_t deposit_bytes, const uint64_t pre_amount,
+                      const uint64_t now_amount);
+    uint64_t get_reward(const rent_token_table::const_iterator& reward_itr, const uint32_t time_elapsed);
 
-    void retire(const extended_asset& value, const string& memo);
+    template <typename T>
+    user_reward_table::const_iterator update_user_reward(const name& owner, const uint64_t& pre_amount,
+                                                         const uint64_t& now_amount, T& _user_reward,
+                                                         const rent_token_table::const_iterator& reward_itr);
 
-    void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
-
-    void ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo);
+    void update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes,
+                       const rent_token_table::const_iterator& reward_itr);
 };
