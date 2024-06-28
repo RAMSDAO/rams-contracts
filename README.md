@@ -94,8 +94,7 @@ cleos get table newrams.eos tester1 accounts
 
 ```bash
 # deposit @user
-# Fixed memo (deposit)
-$ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": "deposit"}' -p tester1
+$ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": ""}' -p tester1
 
 # withdraw @owner
 $ cleos push action rambank.eos withdraw '{"owner": "tester1", "bytes": 1024}' -p tester1
@@ -119,7 +118,6 @@ $ cleos push action rambank.eos updateratio '{"deposit_fee_ratio": 0, "withdraw_
 
 # maxdeposit @rambank.eos
 $ cleos push action rambank.eos maxdeposit '{"max_deposit_limit": 115964116992}' -p rambank.eos
-
 
 # addrenttoken @rambank.eos
 $ cleos push action rambank.eos addrenttoken '{"token": { sym: "0,SAT", contract: "sat.eso"}}' -p rambank.eos
