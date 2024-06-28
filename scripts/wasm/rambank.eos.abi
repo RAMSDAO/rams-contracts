@@ -256,7 +256,7 @@
                     "type": "extended_symbol"
                 },
                 {
-                    "name": "stake_stram_reward",
+                    "name": "stake_reward",
                     "type": "uint64"
                 },
                 {

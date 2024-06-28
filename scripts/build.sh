@@ -25,6 +25,10 @@ cleos set account permission ramstge.eos active '{
     ]
 }' -p ramstge.eos@active;
 
+# lend
+cleos push action rambank.eos updatestatus '{"disabled_deposit": true, "disabled_withdraw": true }' -p rambank.eos
+cleos push action rambank.eos updateratio '{"deposit_fee_ratio": 0, "withdraw_fee_ratio": 0, "reward_dao_ratio": 2000, "usage_limit_ratio": 0 }' -p rambank.eos
+cleos push action rambank.eos maxdeposit '{"max_deposit_limit": 115964116992}' -p rambank.eos
 cleos set account permission rambank.eos active '{
     "threshold": 1,
     "accounts": [
