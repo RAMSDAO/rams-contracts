@@ -9,8 +9,7 @@ using namespace eosio;
 using std::string;
 
 // Error messages
-static string ERROR_RAM_TRANSFER_INVALID_MEMO
-    = "rambank.eos: invalid memo (ex: \"deposit\" or \"repay,<repay_account>\"";
+static string ERROR_RAM_TRANSFER_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"repay,<repay_account>\"";
 
 static string ERROR_TRANSFER_TOKEN_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"rent,<borrower>\"";
 class [[eosio::contract("rambank.eos")]] bank : public contract {
@@ -125,10 +124,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      *
      * @field id - primary key
      * @field total_rent_received - total rent received
-     * @field acc_per_share - earnings per share of RAM held
-     * @field last_reward_time - timestamp of last reward update
-     * @field total - total amount of rewards
-     * @field balance - total amount of unclaimed rewards*
+     *
      **/
     struct [[eosio::table]] rent_row {
         uint64_t id;
@@ -328,13 +324,14 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     void token_change(const name& owner, const uint64_t deposit_bytes, const uint64_t pre_amount,
                       const uint64_t now_amount);
-    uint64_t get_reward(const rent_token_table::const_iterator& reward_itr, const uint32_t time_elapsed);
+    uint64_t get_reward(const extended_symbol& token, const uint32_t time_elapsed);
 
     template <typename T>
     user_reward_table::const_iterator update_user_reward(const name& owner, const uint64_t& pre_amount,
                                                          const uint64_t& now_amount, T& _user_reward,
                                                          const rent_token_table::const_iterator& reward_itr);
 
-    void update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes,
-                       const rent_token_table::const_iterator& reward_itr);
+    template <typename T, typename ITR>
+    void update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes, T& _reward_token,
+                       const ITR& reward_itr);
 };

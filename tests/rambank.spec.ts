@@ -77,6 +77,10 @@ const getTokenBalance = (account: string, contract: string | Account, symcode: s
     return 0
 }
 
+const muldiv = (x: number, y: number, z: number) => {
+    return Number((BigInt(x) * BigInt(y)) / BigInt(z))
+}
+
 const getSupply = (contract: string, symcode: string): number => {
     const scope = Asset.SymbolCode.from(symcode).value.value
     const result = blockchain.getAccount(Name.from(contract))?.tables.stat(scope).getTableRow(scope)
@@ -182,12 +186,22 @@ namespace rambank_eos {
 
     export function depositCostWithFee(quantity: number): number {
         const config = getConfig()
-        return quantity - Math.trunc((quantity * config.deposit_fee_ratio) / 10000)
+        return quantity - depositFee(quantity)
+    }
+
+    export function depositFee(quantity: number): number {
+        const config = getConfig()
+        return muldiv(quantity, config.deposit_fee_ratio, 10000)
     }
 
     export function withdrawCostWithFee(quantity: number): number {
         const config = getConfig()
-        return quantity - Math.trunc((quantity * config.withdraw_fee_ratio) / 10000)
+        return quantity - withdrawFee(quantity)
+    }
+
+    export function withdrawFee(quantity: number): number {
+        const config = getConfig()
+        return muldiv(quantity, config.withdraw_fee_ratio, 10000)
     }
 
     export function getRentToken(reward_id: number): RentToken {
@@ -329,11 +343,11 @@ describe('rams', () => {
             await expectToThrow(action, 'eosio_assert: rambank.eos::deposit: deposit has been suspended')
 
             // open deposit/withdraw
-            await contracts.rambank.actions.updatestatus([false, true]).send('rambank.eos@active')
+            await contracts.rambank.actions.updatestatus([false, false]).send('rambank.eos@active')
             const config = rambank_eos.getConfig()
             expect(config).toEqual({
                 disabled_deposit: false,
-                disabled_withdraw: true,
+                disabled_withdraw: false,
                 deposit_fee_ratio: 30,
                 withdraw_fee_ratio: 30,
                 max_deposit_limit: '115964116992',
@@ -342,14 +356,63 @@ describe('rams', () => {
             })
         })
 
+        test('Not lent, all taken out', async () => {
+            const pay = 30000
+
+            await contracts.eosio.actions
+                .ramtransfer(['account1', 'rambank.eos', pay, 'deposit'])
+                .send('account1@active')
+            const bytes = rambank_eos.getDeposit('account1')
+
+            await contracts.rambank.actions.withdraw(['account1', bytes]).send('account1@active')
+            expect(rambank_eos.getDeposit('account1')).toEqual(0)
+        })
+
         test('deposit rams', async () => {
-            const pay = 3000
+            const pay = 30000
+
+            const to_fees = rambank_eos.depositFee(pay)
+            const to_bank = pay - to_fees
             const before_bytes = rambank_eos.getDeposit('account1')
+            const fees_before_bytes = getRamBytes('ramstramfees')
+            const bank_before_bytes = getRamBytes('ramdeposit11')
             await contracts.eosio.actions
                 .ramtransfer(['account1', 'rambank.eos', pay, 'deposit'])
                 .send('account1@active')
             const after_bytes = rambank_eos.getDeposit('account1')
-            expect(after_bytes - before_bytes).toEqual(pay)
+            const fees_after_bytes = getRamBytes('ramstramfees')
+            const bank_after_bytes = getRamBytes('ramdeposit11')
+            expect(after_bytes - before_bytes).toEqual(to_bank)
+            expect(fees_after_bytes - fees_before_bytes).toEqual(to_fees)
+            expect(bank_after_bytes - bank_before_bytes).toEqual(to_bank)
+        })
+
+        test('borrow, repay', async () => {
+            const borrow = rambank_eos.getStat().deposited_bytes
+            await contracts.rambank.actions.borrow([borrow, 'account2']).send('rambank.eos@active')
+            expect(rambank_eos.getBorrowInfo('account2')).toEqual({
+                account: 'account2',
+                bytes: borrow,
+            })
+
+            expect(rambank_eos.getStat()).toEqual({
+                deposited_bytes: borrow,
+                used_bytes: borrow,
+            })
+
+            await contracts.eosio.actions
+                .ramtransfer(['account2', 'rambank.eos', borrow, 'repay,account2'])
+                .send('account2@active')
+
+            expect(rambank_eos.getBorrowInfo('account2')).toEqual({
+                account: 'account2',
+                bytes: 0,
+            })
+
+            expect(rambank_eos.getStat()).toEqual({
+                deposited_bytes: borrow,
+                used_bytes: 0,
+            })
         })
 
         test('addrenttoken', async () => {
@@ -388,7 +451,7 @@ describe('rams', () => {
         })
 
         test('has exceeded the number of rams that can be borrowed', async () => {
-            const action = contracts.rambank.actions.borrow([3001, 'account2']).send('rambank.eos@active')
+            const action = contracts.rambank.actions.borrow([30001, 'account2']).send('rambank.eos@active')
             await expectToThrow(
                 action,
                 'eosio_assert: rambank.eos::borrow: has exceeded the number of rams that can be borrowed'
@@ -408,6 +471,7 @@ describe('rams', () => {
         })
 
         test('withdraw suspended', async () => {
+            await contracts.rambank.actions.updatestatus([false, true]).send('rambank.eos@active')
             const bytes = rambank_eos.getDeposit('account1')
             const action = contracts.rambank.actions.withdraw(['account1', bytes]).send('account1@active')
             await expectToThrow(action, 'eosio_assert: rambank.eos::withdraw: withdraw has been suspended')
@@ -426,41 +490,48 @@ describe('rams', () => {
             })
         })
 
-        test('liquidity depletion', async () => {
+        test('insufficient liquidity', async () => {
             const withdraw_amount = rambank_eos.getDeposit('account1')
             const action = contracts.rambank.actions.withdraw(['account1', withdraw_amount]).send('account1@active')
-            await expectToThrow(action, 'eosio_assert: rambank.eos::withdraw: liquidity depletion')
+            await expectToThrow(action, 'eosio_assert: rambank.eos::withdraw: insufficient liquidity')
+        })
+
+        test('deposit balance is not enough to withdraw', async () => {
+            const deposit = rambank_eos.getDeposit('account1')
+            await expectToThrow(
+                contracts.rambank.actions.withdraw(['account1', deposit + 1]).send('account1@active'),
+                'eosio_assert: rambank.eos::withdraw: deposit balance is not enough to withdraw'
+            )
         })
 
         test('withdraw rams', async () => {
-            const withdraw_amount = 1000
+            const withdraw_amount = 20000
+            const before_stat = rambank_eos.getStat()
+            const fees_before_rams = getRamBytes('ramstramfees')
             const before_rams = getRamBytes('account1')
             await contracts.rambank.actions.withdraw(['account1', withdraw_amount]).send('account1@active')
             const after_rams = getRamBytes('account1')
-            expect(after_rams - before_rams).toEqual(rambank_eos.withdrawCostWithFee(withdraw_amount))
+            const after_stat = rambank_eos.getStat()
+            const fees_after_rams = getRamBytes('ramstramfees')
 
-            const stat = rambank_eos.getStat()
-            expect(stat).toEqual({
-                deposited_bytes: 2003,
-                used_bytes: 1000,
-            })
+            expect(after_rams - before_rams).toEqual(rambank_eos.withdrawCostWithFee(withdraw_amount))
+            expect(before_stat.deposited_bytes - after_stat.deposited_bytes).toEqual(withdraw_amount)
+            expect(fees_after_rams - fees_before_rams).toEqual(rambank_eos.withdrawFee(withdraw_amount))
         })
 
         test('repay rams', async () => {
             const repay_amount = 1200
             const borrowInfo = rambank_eos.getBorrowInfo('account2')
             const before_rams = getRamBytes('account2')
+            const before_stat = rambank_eos.getStat()
             await contracts.eosio.actions
                 .ramtransfer(['account2', 'rambank.eos', `${repay_amount}`, 'repay,account2'])
                 .send('account2@active')
             const after_rams = getRamBytes('account2')
-            expect(before_rams - after_rams).toEqual(borrowInfo.bytes)
+            const after_stat = rambank_eos.getStat()
 
-            const stat = rambank_eos.getStat()
-            expect(stat).toEqual({
-                deposited_bytes: 2003,
-                used_bytes: 0,
-            })
+            expect(before_rams - after_rams).toEqual(borrowInfo.bytes)
+            expect(before_stat.used_bytes - after_stat.used_bytes).toEqual(borrowInfo.bytes)
         })
 
         test('no lending, no rent transferred', async () => {
