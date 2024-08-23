@@ -12,7 +12,7 @@ const contracts = {
 }
 
 // accounts
-blockchain.createAccounts('ramsreward11', 'ramstramfees', 'account1', 'account2', 'account3')
+blockchain.createAccounts('ramsreward11', 'ramstramfees', 'account1', 'account2', 'account3', 'ramx.eos')
 const ramdeposit11 = blockchain.createAccount('ramdeposit11')
 const rewardbank = blockchain.createAccount('stramreward1')
 ramdeposit11.setPermissions([
@@ -107,12 +107,9 @@ namespace rambank_eos {
         deposit_fee_ratio: number
         withdraw_fee_ratio: number
         withdraw_limit_ratio: number
+        disabled_transfer: boolean
     }
 
-    interface Deposit {
-        account: string
-        bytes: number
-    }
     interface Stat {
         deposited_bytes: number
         used_bytes: number
@@ -169,6 +166,15 @@ namespace rambank_eos {
         return 0
     }
 
+    export function getFreeze(account: string): number {
+        let key = Name.from(account).value.value
+        const freeze = contracts.rambank.tables.freezes().getTableRow(key)
+        if (freeze) {
+            return freeze.bytes
+        }
+        return 0
+    }
+
     export function getBorrowInfo(account: string): BorrowInfo {
         let key = Name.from(account).value.value
         return contracts.rambank.tables.borrows().getTableRow(key)
@@ -185,7 +191,6 @@ namespace rambank_eos {
     }
 
     export function depositCostWithFee(quantity: number): number {
-        const config = getConfig()
         return quantity - depositFee(quantity)
     }
 
@@ -195,7 +200,6 @@ namespace rambank_eos {
     }
 
     export function withdrawCostWithFee(quantity: number): number {
-        const config = getConfig()
         return quantity - withdrawFee(quantity)
     }
 
@@ -309,6 +313,7 @@ describe('rams', () => {
                 max_deposit_limit: '115964116992',
                 reward_dao_ratio: 2000,
                 usage_limit_ratio: 9000,
+                disabled_transfer: false
             })
         })
 
@@ -323,6 +328,7 @@ describe('rams', () => {
                 max_deposit_limit: '115964116992',
                 reward_dao_ratio: 2000,
                 usage_limit_ratio: 9000,
+                disabled_transfer: false
             })
         })
 
@@ -353,6 +359,7 @@ describe('rams', () => {
                 max_deposit_limit: '115964116992',
                 reward_dao_ratio: 2000,
                 usage_limit_ratio: 9000,
+                disabled_transfer: false
             })
         })
 
@@ -457,6 +464,7 @@ describe('rams', () => {
                 'eosio_assert: rambank.eos::borrow: has exceeded the number of rams that can be borrowed'
             )
         })
+
         test('borrow', async () => {
             const pay = 1000
             const before_rams = getRamBytes('account2')
@@ -487,6 +495,7 @@ describe('rams', () => {
                 max_deposit_limit: '115964116992',
                 reward_dao_ratio: 2000,
                 usage_limit_ratio: 9000,
+                disabled_transfer: false
             })
         })
 
@@ -554,6 +563,104 @@ describe('rams', () => {
             )
             await contracts.rambank.actions.tokenstatus([1, true]).send('rambank.eos@active')
         })
+
+        test('freeze: missing required authority ramx.eos', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.freeze(['account1', 100]).send('account1'),
+                'missing required authority ramx.eos'
+            )
+        })
+
+        test('freeze: [deposits] does not exists', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.freeze(['account3', 100]).send('ramx.eos'),
+                'eosio_assert: rambank.eos::freeze: [deposits] does not exists'
+            )
+        })
+
+        test('freeze: deposit balance is not enough to freezed', async () => {
+            const deposit = rambank_eos.getDeposit('account1')
+            await expectToThrow(
+                contracts.rambank.actions.freeze(['account1', deposit + 1]).send('ramx.eos'),
+                'eosio_assert: rambank.eos::freeze: deposit balance is not enough to freezed'
+            )
+        })
+
+        test('freeze', async () => {
+            await contracts.rambank.actions.freeze(['account1', 1000]).send('ramx.eos')
+            expect(rambank_eos.getFreeze('account1')).toEqual(1000)
+        })
+
+        test('freeze: deposit balance is not enough to freezed', async () => {
+            const deposit_bytes = rambank_eos.getDeposit('account1')
+            const freeze_bytes = rambank_eos.getFreeze('account1')
+            await expectToThrow(
+                contracts.rambank.actions.freeze(['account1', deposit_bytes - freeze_bytes + 1]).send('ramx.eos'),
+                'eosio_assert: rambank.eos::freeze: deposit balance is not enough to freezed'
+            )
+        })
+
+        test('withdraw: deposit balance is not enough to withdraw', async () => {
+            const deposit_bytes = rambank_eos.getDeposit('account1')
+            const freeze_bytes = rambank_eos.getFreeze('account1')
+            await expectToThrow(
+                contracts.rambank.actions.withdraw(['account1', deposit_bytes - freeze_bytes + 1]).send('account1'),
+                'eosio_assert: rambank.eos::withdraw: deposit balance is not enough to withdraw'
+            )
+        })
+
+        test('unfreeze: missing required authority ramx.eos', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.unfreeze(['account1', 100]).send('account1'),
+                'missing required authority ramx.eos'
+            )
+        })
+
+        test('unfreeze: unfrozen bytes must be less than frozen bytes', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.unfreeze(['account1', 1001]).send('ramx.eos'),
+                'eosio_assert: rambank.eos::unfreeze: unfrozen bytes must be less than frozen bytes'
+            )
+        })
+
+        test('unfreeze', async () => {
+            await contracts.rambank.actions.unfreeze(['account1', 1000]).send('ramx.eos')
+            expect(rambank_eos.getFreeze('account1')).toEqual(0)
+        })
+
+        test('transfer: missing required authority account1', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.transfer(['account1', 'account2', 100, '']).send('account2'),
+                'missing required authority account1'
+            )
+        })
+
+        test('transfer', async () => {
+            const before_account1_bytes = rambank_eos.getDeposit('account1')
+            const before_account2_bytes = rambank_eos.getDeposit('account2')
+            await contracts.rambank.actions.transfer(['account1', 'account2', 100, '']).send('account1')
+            const after_account1_bytes = rambank_eos.getDeposit('account1')
+            const after_account2_bytes = rambank_eos.getDeposit('account2')
+
+            expect(before_account1_bytes - after_account1_bytes).toEqual(100)
+            expect(after_account2_bytes - before_account2_bytes).toEqual(100)
+        })
+
+        test('transstatus: disabled', async () => {
+            await contracts.rambank.actions.transstatus([true]).send('rambank.eos')
+            expect(rambank_eos.getConfig().disabled_transfer).toEqual(true)
+        })
+
+        test('transfer: transfer has been suspended', async () => {
+            await expectToThrow(
+                contracts.rambank.actions.transfer(['account1', 'account2', 100, '']).send('account1'),
+                'eosio_assert: rambank.eos::transfer: transfer has been suspended'
+            )
+        })
+
+        test('transstatus: enabled', async () => {
+            await contracts.rambank.actions.transstatus([false]).send('rambank.eos')
+        })
     })
 
     describe('streward.eos', () => {
@@ -615,6 +722,17 @@ describe('rams', () => {
             await contracts.rambank.actions.claim(['account1']).send('account1@active')
             const after_sats = getTokenBalance('account1', contracts.sats, 'SATS')
             expect(after_sats - before_sats).toEqual(expect_user_reward)
+        })
+
+        test('transfer: settle reward', async () => {
+            await contracts.rambank.actions.transfer(['account1', 'account2', 100, '']).send('account1')
+            let account1_reward = rambank_eos.getUserReward(1, 'account1')
+            let account2_reward = rambank_eos.getUserReward(1, 'account2')
+            const account1_bytes = rambank_eos.getDeposit('account1')
+            const account2_bytes = rambank_eos.getDeposit('account2')
+            const rent_token = rambank_eos.getRentToken(1)
+            expect(account1_reward.debt).toEqual(muldiv(account1_bytes, rent_token.acc_per_share, 100000000))
+            expect(account2_reward.debt).toEqual(muldiv(account2_bytes, rent_token.acc_per_share, 100000000))
         })
     })
 })

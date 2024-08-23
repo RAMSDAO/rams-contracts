@@ -13,14 +13,15 @@ RAM is not only the backbone of the EOS ecosystem, but also the key to innovatio
 
 ## Contracts
 
-| name                                                  | description                  |
-| ----------------------------------------------------- | ---------------------------- |
-| [newrams.eos](https://bloks.io/account/newrams.eos)   | Token Contract               |
-| [ramstge.eos](https://bloks.io/account/ramstge.eos)   | Swap Contract                |
-| [rams.eos](https://bloks.io/account/rams.eos)         | Inscription Contract         |
-| [rambank.eos](https://bloks.io/account/rambank.eos)   | Lend Contract                |
-| [ramdeposit11](https://bloks.io/account/ramdeposit11) | Ram Deposit Account          |
-| [strampoolram](https://bloks.io/account/strampoolram) | STRAM reward contract        |
+| name                                                  | description                |
+| ----------------------------------------------------- | -------------------------- |
+| [newrams.eos](https://bloks.io/account/newrams.eos)   | Token Contract             |
+| [ramstge.eos](https://bloks.io/account/ramstge.eos)   | Swap Contract              |
+| [rams.eos](https://bloks.io/account/rams.eos)         | Inscription Contract       |
+| [rambank.eos](https://bloks.io/account/rambank.eos)   | Lend Contract              |
+| [ramdeposit11](https://bloks.io/account/ramdeposit11) | Ram Deposit Account        |
+| [strampoolram](https://bloks.io/account/strampoolram) | STRAM reward contract      |
+| [ramx.eos](https://bloks.io/account/ramx.eos)         | RAM pending order contract |
 
 ## Quickstart
 
@@ -93,7 +94,7 @@ cleos get table newrams.eos tester1 accounts
 #### Actions
 
 ```bash
-# deposit @user
+# deposit @owner
 $ cleos push action eosio ramtransfer '{"from": "tester1", "to": "rambank.eos", "bytes": "1024", "memo": ""}' -p tester1
 
 # withdraw @owner
@@ -116,6 +117,9 @@ $ cleos push action rambank.eos updatestatus '{"disabled_deposit": false, "disab
 # updateratio @rambank.eos
 $ cleos push action rambank.eos updateratio '{"deposit_fee_ratio": 0, "withdraw_fee_ratio": 0, "reward_dao_ratio": 2000, "usage_limit_ratio": 9000 }' -p rambank.eos
 
+# transstatus @rambank.eos
+$ cleos push action rambank.eos transstatus '{"disabled_transfer": true }' -p rambank.eos
+
 # maxdeposit @rambank.eos
 $ cleos push action rambank.eos maxdeposit '{"max_deposit_limit": 115964116992}' -p rambank.eos
 
@@ -127,6 +131,9 @@ $ cleos push action rambank.eos tokenstatus '{"fee_token_id": 1, "enabled": true
 
 #  claim @owner
 $ cleos push action rambank.eos claim '{"owner", "tester1"}' -p tester1
+
+#  transfer @owner
+$ cleos push action rambank.eos transfer '{"from": "tester1", "to": "ramx.eos", "bytes": 1000, "memo":""}' -p tester1
 ```
 
 #### Viewing Table Information
@@ -137,4 +144,54 @@ cleos get table rambank.eos rambank.eos stat
 cleos get table rambank.eos rambank.eos borrows -L tester1 -U tester1
 cleos get table rambank.eos rambank.eos renttokens
 cleos get table rambank.eos 1 userrewards
+cleos get table rambank.eos rambank.eos freezes -L tester1 -U tester1
+```
+
+### `ramx.eos`
+
+#### Actions
+
+```bash
+# fee config @ramx.eos (RATIO_PRECISION:  10^4)
+$ cleos push action ramx.eos feeconfig '{"fee_account": "fees.eos", "fee_ratio": 2000}' -p ramx.eos
+
+# trade config @ramx.eos
+$ cleos push action ramx.eos tradeconfig '{"min_trade_amount": "0.1000 EOS", "min_trade_bytes": 1000}' -p ramx.eos
+
+# status config @ramx.eos
+$ cleos push action rambank.eos statusconfig '{"disabled_trade": true, "disabled_pending_order": true}' -p ramx.eos
+
+# create sell order @owner (PRICE_PRECISION: 10^8)
+$ cleos push action ramx.eos newsellorder '{"owner": "tester1", "price": 600000, "bytes": 1000}' -p tester1
+
+# sell @owner
+$ cleos push action ramx.eos sell '{"owner": "tester1", "order_ids": [1,2]}' -p tester1
+
+# create buy order @owner (memo: "newbuyorder,<price>,<bytes>", PRICE_PRECISION: 10^8)
+$ cleos push action eosio.token transfer '{"from": "tester1", "to": "ramx.eos", "quantity": "10.0000 EOS", "memo": "newbuyorder,500000,20000"}' -p tester1
+
+# buy @owner (memo: "buy,<order_ids>")
+$ cleos push action eosio.token transfer '{"from": "tester1", "to": "ramx.eos", "quantity": "10.0000 EOS", "memo": "buy,3-4"}' -p tester1
+
+# cancel order @owner
+$ cleos push action ramx.eos celorder '{"owner": "tester1", "order_ids": [1,2,3,4]}' -p tester1
+```
+
+#### Viewing Table Information
+
+```bash
+cleos get table ramx.eos ramx.eos config
+cleos get table ramx.eos ramx.eos stat
+
+# order (key: order_id)
+cleos get table ramx.eos ramx.eos orders -L 1 -U 1
+
+# order (key: owner)
+cleos get table ramx.eos ramx.eos orders --index 2 --key-type i64 -L tester1 -U tester1
+
+# order (key: type + owner)
+cleos get table ramx.eos ramx.eos orders --index 4 --key-type i128 -L 1000 -U 2000
+
+# order (key: type + price)
+cleos get table ramx.eos ramx.eos orders --index 5 --key-type i128 -L 1000 -U 2000
 ```

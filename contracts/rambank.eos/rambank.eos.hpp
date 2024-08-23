@@ -4,6 +4,7 @@
 #include <eosio/eosio.hpp>
 #include <eosio/singleton.hpp>
 #include <eosio/system.hpp>
+#include <eosio/binary_extension.hpp>
 
 using namespace eosio;
 using std::string;
@@ -17,6 +18,8 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using contract::contract;
 
     const uint16_t RATIO_PRECISION = 10000;
+
+    const name RAMX_EOS = "ramx.eos"_n;
 
     struct memo_schema {
         string action;
@@ -34,6 +37,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      * @field reward_pool_ratio - the proportion of rewards allocated to the RAM pool, with the remaining rewards
      * transferred to the DAO.
      * @field withdraw_limit_ratio - limit the RAM extraction when the usage rate exceeds a certain threshold.
+     * @field disabled_transfer - transfer status.
      *
      **/
     struct [[eosio::table("config")]] config_row {
@@ -44,6 +48,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t max_deposit_limit = 115964116992LL;
         uint16_t reward_dao_ratio = 2000;
         uint16_t usage_limit_ratio = 9000;
+        binary_extension<bool> disabled_transfer;
     };
     typedef eosio::singleton<"config"_n, config_row> config_table;
 
@@ -62,11 +67,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     typedef eosio::singleton<"stat"_n, stat_row> stat_table;
 
     /**
-     * @brief RAM borrowed by users table.
+     * @brief user ram.
      * @scope get_self()
      *
-     * @field account - the account that borrowed RAM
-     * @field bytes - the amount of RAM borrowed.
+     * @field account - the account that deposited RAM
+     * @field bytes - the amount of RAM deposited.
      *
      **/
     struct [[eosio::table]] deposit_row {
@@ -90,6 +95,21 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t primary_key() const { return account.value; }
     };
     typedef eosio::multi_index<"borrows"_n, borrow_row> borrow_table;
+
+    /**
+     * @brief freeze table.
+     * @scope get_self()
+     *
+     * @field account - the account that freezed RAM
+     * @field bytes - the amount of RAM freezed.
+     *
+     **/
+    struct [[eosio::table]] freeze_row {
+        name account;
+        uint64_t bytes;
+        uint64_t primary_key() const { return account.value; }
+    };
+    typedef eosio::multi_index<"freezes"_n, freeze_row> freeze_table;
 
     /**
      * @brief supported rent currencies table.
@@ -194,6 +214,16 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
                      const uint16_t reward_dao_ratio, const uint16_t usage_limit_ratio);
 
     /**
+     * Update transfer status action.
+     * - **authority**: `get_self()`
+     *
+     * @param disabled_transfer - transfer status
+     *
+     */
+    [[eosio::action]]
+    void transstatus(const bool disabled_transfer);
+
+    /**
      * Add rent token action.
      * - **authority**: `get_self()`
      *
@@ -245,6 +275,40 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     [[eosio::action]]
     void claim(const name& owner);
 
+    /**
+     * Transfer bytes action.
+     * - **authority**: `from`
+     *
+     * @param from - the account to transfer from,
+     * @param to - the account to be transferred to,
+     * @param bytes - the quantity of ram bytes to be transferred,
+     * @param memo - the memo string to accompany the transaction.
+     */
+    [[eosio::action]]
+    void transfer(const name& from, const name& to, const uint64_t bytes, const std::string& memo);
+
+    /**
+     * Freeze RAM action.
+     * - **authority**: `ramx.eos`
+     *
+     * @param owner - ram’s holding account.
+     * @param bytes - bytes of RAM to freezed.
+     *
+     */
+    [[eosio::action]]
+    void freeze(const name& owner, const uint64_t bytes);
+
+    /**
+     * Unfreeze RAM action.
+     * - **authority**: `ramx.eos`
+     *
+     * @param owner - ram’s holding account.
+     * @param bytes - bytes of RAM to unfreeze.
+     *
+     */
+    [[eosio::action]]
+    void unfreeze(const name& owner, const uint64_t bytes);
+
     // logs
     [[eosio::action]]
     void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token) {
@@ -286,6 +350,22 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void transferlog(const name& from, const name& to, const uint64_t bytes, const uint64_t from_bytes,
+                     const uint64_t to_bytes, const std::string& memo) {
+        require_auth(get_self());
+    }
+
+    [[eosio::action]]
+    void freezelog(const name& owner, const uint64_t bytes, const uint64_t freezed_bytes) {
+        require_auth(get_self());
+    }
+
+    [[eosio::action]]
+    void unfreezelog(const name& owner, const uint64_t bytes, const uint64_t freezed_bytes) {
+        require_auth(get_self());
+    }
+
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
@@ -293,6 +373,9 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     void on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo);
 
     // action wrappers
+    using freeze_action = eosio::action_wrapper<"freeze"_n, &bank::freeze>;
+    using unfreeze_action = eosio::action_wrapper<"unfreeze"_n, &bank::unfreeze>;
+    using transfer_action = eosio::action_wrapper<"transfer"_n, &bank::transfer>;
     using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &bank::addtokenlog>;
     using statuslog_action = eosio::action_wrapper<"statuslog"_n, &bank::statuslog>;
     using depositlog_action = eosio::action_wrapper<"depositlog"_n, &bank::depositlog>;
@@ -301,6 +384,9 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using repaylog_action = eosio::action_wrapper<"repaylog"_n, &bank::repaylog>;
     using statlog_action = eosio::action_wrapper<"statlog"_n, &bank::statlog>;
     using rewardlog_action = eosio::action_wrapper<"rewardlog"_n, &bank::rewardlog>;
+    using transferlog_action = eosio::action_wrapper<"transferlog"_n, &bank::transferlog>;
+    using freezelog_action = eosio::action_wrapper<"freezelog"_n, &bank::freezelog>;
+    using unfreezelog_action = eosio::action_wrapper<"unfreezelog"_n, &bank::unfreezelog>;
 
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
@@ -312,6 +398,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     stat_table _stat = stat_table(_self, _self.value);
     borrow_table _borrow = borrow_table(_self, _self.value);
     deposit_table _deposit = deposit_table(_self, _self.value);
+    freeze_table _freeze = freeze_table(_self, _self.value);
 
     // private method
     uint64_t get_balance(const name& owner, const extended_symbol& token);

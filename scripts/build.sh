@@ -4,11 +4,13 @@ cdt-cpp ../contracts/rams.eos/rams.eos.cpp -I../contracts --abigen_output wasm/r
 cdt-cpp ../contracts/newrams.eos/newrams.eos.cpp -I../contracts --abigen_output wasm/newrams.eos.abi -o wasm/newrams.eos.wasm
 cdt-cpp ../contracts/swaprams.eos/swaprams.eos.cpp -I../contracts --abigen_output wasm/swaprams.eos.abi -o wasm/swaprams.eos.wasm --contract=ramstge.eos
 cdt-cpp ../contracts/rambank.eos/rambank.eos.cpp -I../contracts -I../contracts/internal -I../external --abigen_output wasm/rambank.eos.abi -o wasm/rambank.eos.wasm
+cdt-cpp ../contracts/ramx.eos/ramx.eos.cpp -I../contracts -I../contracts/internal -I../external --abigen_output wasm/ramx.eos.abi -o wasm/ramx.eos.wasm
 
 cleos set contract rams.eos wasm rams.eos.wasm rams.eos.abi
 cleos set contract newrams.eos wasm newrams.eos.wasm newrams.eos.abi
 cleos set contract ramstge.eos wasm swaprams.eos.wasm swaprams.eos.abi
 cleos set contract rambank.eos wasm rambank.eos.wasm rambank.eos.abi
+cleos set contract ramx.eos wasm ramx.eos.wasm ramx.eos.abi
 
 cleos push action newrams.eos create '["ramstge.eos", "1000000000 RAMS"]' -p newrams.eos
 cleos push action ramstge.eos init '[false]' -p ramstge.eos 
@@ -50,3 +52,13 @@ cleos set account permission stramreward1 active '{
      { "permission": { "actor": "stramreward1", "permission": "eosio.code" }, "weight": 1 }
     ]
 }' -p stramreward1@active;
+
+cleos push action ramx.eos feeconfig '["ramsdao.eos", "200"]' -p ramx.eos 
+cleos push action ramx.eos tradeconfig '["0.1000 EOS", 1000]' -p ramx.eos 
+
+cleos set account permission ramx.eos active '{
+    "threshold": 1,
+    "accounts": [
+     { "permission": { "actor": "ramx.eos", "permission": "eosio.code" }, "weight": 1 }
+    ]
+}' -p ramx.eos@active;
