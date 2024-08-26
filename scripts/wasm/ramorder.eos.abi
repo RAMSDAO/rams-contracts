@@ -58,7 +58,7 @@
             ]
         },
         {
-            "name": "newsellorder",
+            "name": "sellorder",
             "base": "",
             "fields": [
                 {
@@ -230,8 +230,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "newsellorder",
-            "type": "newsellorder",
+            "name": "sellorder",
+            "type": "sellorder",
             "ricardian_contract": ""
         },
         {

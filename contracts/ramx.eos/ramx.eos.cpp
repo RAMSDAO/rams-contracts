@@ -39,24 +39,24 @@ void ramx::statusconfig(const bool disabled_trade, const bool disabled_pending_o
 }
 
 [[eosio::action]]
-void ramx::newsellorder(const name& owner, const uint64_t price, const uint64_t bytes) {
+void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t bytes) {
     require_auth(owner);
 
     auto config = _config.get();
 
-    check(price > 0, "ramx.eos::newsellorder: price must be greater than 0");
-    check(bytes > 0, "ramx.eos::newsellorder: bytes must be greater than 0");
-    check(!config.disabled_pending_order, "ramx.eos::newsellorder: pending order has been suspended");
+    check(price > 0, "ramx.eos::sellorder: price must be greater than 0");
+    check(bytes > 0, "ramx.eos::sellorder: bytes must be greater than 0");
+    check(!config.disabled_pending_order, "ramx.eos::sellorder: pending order has been suspended");
 
     auto amount = uint128_t(price) * bytes / PRICE_PRECISION;
-    check(amount <= asset::max_amount, "ramx.eos::newsellorder: trade quantity too large");
+    check(amount <= asset::max_amount, "ramx.eos::sellorder: trade quantity too large");
 
     auto quantity = asset(amount, EOS);
 
     check(bytes >= config.min_trade_bytes,
-          "ramx.eos::newsellorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
+          "ramx.eos::sellorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
     check(quantity >= config.min_trade_amount,
-          "ramx.eos::newsellorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
+          "ramx.eos::sellorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
 
     // freeze
     bank::freeze_action freeze(RAM_BANK_CONTRACT, {get_self(), "active"_n});
@@ -249,8 +249,8 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
     check(contract == EOS_CONTRACT && quantity.symbol == EOS, "only transfer [eosio.token/EOS]");
 
     const auto parsed_memo = parse_memo(memo);
-    if (parsed_memo.action == "newbuyorder"_n) {
-        do_newbuyorder(from, parsed_memo.price, parsed_memo.bytes, ext_in);
+    if (parsed_memo.action == "buyorder"_n) {
+        do_buyorder(from, parsed_memo.price, parsed_memo.bytes, ext_in);
     } else if (parsed_memo.action == "buy"_n) {
         do_buy(from, parsed_memo.order_ids, ext_in);
     } else {
@@ -258,21 +258,21 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
     }
 }
 
-void ramx::do_newbuyorder(const name& owner, const uint64_t price, const uint64_t bytes, const extended_asset& ext_in) {
+void ramx::do_buyorder(const name& owner, const uint64_t price, const uint64_t bytes, const extended_asset& ext_in) {
     auto config = _config.get();
 
-    check(price > 0, "ramx.eos::newbuyorder: price must be greater than 0");
-    check(bytes > 0, "ramx.eos::newbuyorder: bytes must be greater than 0");
-    check(!config.disabled_pending_order, "ramx.eos::newbuyorder: pending order has been suspended");
+    check(price > 0, "ramx.eos::buyorder: price must be greater than 0");
+    check(bytes > 0, "ramx.eos::buyorder: bytes must be greater than 0");
+    check(!config.disabled_pending_order, "ramx.eos::buyorder: pending order has been suspended");
 
     auto amount = uint128_t(price) * bytes / PRICE_PRECISION;
-    check(amount <= asset::max_amount, "ramx.eos::newbuyorder: trade quantity too large");
+    check(amount <= asset::max_amount, "ramx.eos::buyorder: trade quantity too large");
     auto quantity = asset(amount, ext_in.quantity.symbol);
     check(bytes >= config.min_trade_bytes,
-          "ramx.eos::newbuyorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
+          "ramx.eos::buyorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
     check(quantity >= config.min_trade_amount,
-          "ramx.eos::newbuyorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
-    check(ext_in.quantity >= quantity, "ramx.eos::newbuyorder: insufficient balance transferred");
+          "ramx.eos::buyorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
+    check(ext_in.quantity >= quantity, "ramx.eos::buyorder: insufficient balance transferred");
 
     // order
     auto order_id = next_order_id();
@@ -404,7 +404,7 @@ ramx::memo_schema ramx::parse_memo(const string& memo) {
     result.action = rams::utils::parse_name(parts[0]);
 
     // createspace action
-    if (result.action == "newbuyorder"_n) {
+    if (result.action == "buyorder"_n) {
         check(parts.size() == 3, ERROR_INVALID_MEMO);
         // price
         check(rams::utils::is_digit(parts[1]), "ramx.eos::parse_memo: invalid price");

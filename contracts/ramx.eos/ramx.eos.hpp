@@ -9,8 +9,7 @@ using namespace eosio;
 using namespace std;
 
 // Error messages
-static string ERROR_INVALID_MEMO
-    = "ramx.eos: invalid memo (ex: \"newbuyorder,<price>,<bytes>\" or \"buy,<order_ids>\")";
+static string ERROR_INVALID_MEMO = "ramx.eos: invalid memo (ex: \"buyorder,<price>,<bytes>\" or \"buy,<order_ids>\")";
 class [[eosio::contract("ramx.eos")]] ramx : public contract {
    public:
     using contract::contract;
@@ -169,7 +168,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      *
      */
     [[eosio::action]]
-    void newsellorder(const name& owner, const uint64_t price, const uint64_t bytes);
+    void sellorder(const name& owner, const uint64_t price, const uint64_t bytes);
 
     /**
      * Cancel order action.
@@ -241,7 +240,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
     bool has_duplicate(const vector<uint64_t>& order_ids);
 
     uint64_t next_order_id();
-    void do_newbuyorder(const name& owner, const uint64_t price, const uint64_t bytes, const extended_asset& ext_in);
+    void do_buyorder(const name& owner, const uint64_t price, const uint64_t bytes, const extended_asset& ext_in);
     void do_buy(const name& owner, const vector<uint64_t>& order_ids, const extended_asset& ext_in);
     void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
 };
