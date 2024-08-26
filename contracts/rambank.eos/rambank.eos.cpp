@@ -320,7 +320,7 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
     check(bytes > 0, "rambank.eos::transfer: cannot transfer negative");
     check(is_account(to), "rambank.eos::transfer: to account does not exist");
 
-    auto freeze_itr = _freeze.require_find(from.value, "rambank.eos::transfer: [freezes] does not exists");
+    auto freeze_itr = _freeze.find(from.value);
     uint64_t freeze_bytes = freeze_itr == _freeze.end() ? 0 : freeze_itr->bytes;
 
     auto from_deposit_itr = _deposit.require_find(from.value, "rambank.eos::transfer: [deposits] does not exists");
