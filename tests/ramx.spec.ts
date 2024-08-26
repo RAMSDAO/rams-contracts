@@ -266,9 +266,10 @@ describe('rams', () => {
                 contracts.ramx.actions.sellorder(['account1', 200000, 100]).send('account1'),
                 'eosio_assert: ramx.eos::sellorder: pending order has been suspended'
             )
+
             await expectToThrow(
                 contracts.eos.actions
-                    .transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buyorder,286328,2158'])
+                    .transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buyorder,286328'])
                     .send('account2'),
                 'eosio_assert: ramx.eos::buyorder: pending order has been suspended'
             )
@@ -357,14 +358,14 @@ describe('rams', () => {
         test('buyorder: invalid', async () => {
             await expectToThrow(
                 contracts.eos.actions.transfer(['account2', 'ramx.eos', '100.0000 EOS', '']).send('account2'),
-                'eosio_assert_message: ramx.eos: invalid memo (ex: "buyorder,<price>,<bytes>" or "buy,<order_ids>")'
+                'eosio_assert_message: ramx.eos: invalid memo (ex: "buyorder,<price>" or "buy,<order_ids>")'
             )
         })
 
         test('buyorder: bytes must be greater than 1000', async () => {
             await expectToThrow(
                 contracts.eos.actions
-                    .transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buyorder,10000,100'])
+                    .transfer(['account2', 'ramx.eos', '0.1000 EOS', 'buyorder,1000000'])
                     .send('account2'),
                 'eosio_assert_message: ramx.eos::buyorder: bytes must be greater than 1000'
             )
@@ -373,7 +374,7 @@ describe('rams', () => {
         test('buyorder: order_id => 3', async () => {
             const before_ramx_balance = getTokenBalance('ramx.eos', 'eosio.token', 'EOS')
             await contracts.eos.actions
-                .transfer(['account1', 'ramx.eos', '100.0000 EOS', 'buyorder,10000,3000'])
+                .transfer(['account1', 'ramx.eos', '0.3000 EOS', 'buyorder,10000'])
                 .send('account1')
             const after_ramx_balance = getTokenBalance('ramx.eos', 'eosio.token', 'EOS')
             expect(after_ramx_balance - before_ramx_balance).toEqual(muldiv(10000, 3000, 10000))
@@ -403,22 +404,22 @@ describe('rams', () => {
         test('buyorder: order_id => 4', async () => {
             const before_ramx_balance = getTokenBalance('ramx.eos', 'eosio.token', 'EOS')
             await contracts.eos.actions
-                .transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buyorder,286328,2158'])
+                .transfer(['account2', 'ramx.eos', '6.1789 EOS', 'buyorder,286328'])
                 .send('account2')
             const after_ramx_balance = getTokenBalance('ramx.eos', 'eosio.token', 'EOS')
-            expect(after_ramx_balance - before_ramx_balance).toEqual(muldiv(286328, 2158, 10000))
+            expect(after_ramx_balance - before_ramx_balance).toEqual(Asset.from('6.1789 EOS').units.value.toNumber())
 
             expect(ramx_eos.getOrder(4)).toEqual({
                 id: 4,
                 type: 'buy',
                 owner: 'account2',
                 price: 286328,
-                bytes: 2158,
+                bytes: 2157,
                 quantity: '6.1789 EOS',
                 created_at: TimePointSec.from(blockchain.timestamp).toString(),
             })
             expect(ramx_eos.getStat()).toEqual({
-                buy_bytes: 5158,
+                buy_bytes: 5157,
                 buy_quantity: '6.4789 EOS',
                 num_buy_orders: 2,
                 sell_bytes: 3000,
@@ -496,7 +497,7 @@ describe('rams', () => {
                 sell_bytes: 3000,
                 sell_quantity: '7.1357 EOS',
                 num_sell_orders: 2,
-                trade_bytes: 5158,
+                trade_bytes: 5157,
                 trade_quantity: '6.4789 EOS',
                 num_trade_orders: 2,
             })
@@ -505,7 +506,7 @@ describe('rams', () => {
         test('buy: invalid memo', async () => {
             await expectToThrow(
                 contracts.eos.actions.transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buy']).send('account2'),
-                'eosio_assert_message: ramx.eos: invalid memo (ex: "buyorder,<price>,<bytes>" or "buy,<order_ids>")'
+                'eosio_assert_message: ramx.eos: invalid memo (ex: "buyorder,<price>" or "buy,<order_ids>")'
             )
         })
 
@@ -565,7 +566,7 @@ describe('rams', () => {
                 sell_bytes: 0,
                 sell_quantity: '0.0000 EOS',
                 num_sell_orders: 0,
-                trade_bytes: 8158,
+                trade_bytes: 8157,
                 trade_quantity: '13.6146 EOS',
                 num_trade_orders: 4,
             })
@@ -601,7 +602,7 @@ describe('rams', () => {
 
         test('celorder', async () => {
             await contracts.eos.actions
-                .transfer(['account2', 'ramx.eos', '100.0000 EOS', 'buyorder,10000,3000'])
+                .transfer(['account2', 'ramx.eos', '0.3000 EOS', 'buyorder,10000'])
                 .send('account2')
 
             await contracts.ramx.actions.sellorder(['account2', 200000, 1000]).send('account2')
@@ -613,7 +614,7 @@ describe('rams', () => {
                 sell_bytes: 1000,
                 sell_quantity: '2.0000 EOS',
                 num_sell_orders: 1,
-                trade_bytes: 8158,
+                trade_bytes: 8157,
                 trade_quantity: '13.6146 EOS',
                 num_trade_orders: 4,
             })
@@ -635,7 +636,7 @@ describe('rams', () => {
                 sell_bytes: 0,
                 sell_quantity: '0.0000 EOS',
                 num_sell_orders: 0,
-                trade_bytes: 8158,
+                trade_bytes: 8157,
                 trade_quantity: '13.6146 EOS',
                 num_trade_orders: 4,
             })

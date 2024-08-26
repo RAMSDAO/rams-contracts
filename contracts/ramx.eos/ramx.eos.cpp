@@ -250,7 +250,7 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
 
     const auto parsed_memo = parse_memo(memo);
     if (parsed_memo.action == "buyorder"_n) {
-        do_buyorder(from, parsed_memo.price, parsed_memo.bytes, ext_in);
+        do_buyorder(from, parsed_memo.price, ext_in);
     } else if (parsed_memo.action == "buy"_n) {
         do_buy(from, parsed_memo.order_ids, ext_in);
     } else {
@@ -258,21 +258,17 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
     }
 }
 
-void ramx::do_buyorder(const name& owner, const uint64_t price, const uint64_t bytes, const extended_asset& ext_in) {
+void ramx::do_buyorder(const name& owner, const uint64_t price, const extended_asset& ext_in) {
     auto config = _config.get();
 
+    auto bytes = uint128_t(ext_in.quantity.amount) * PRICE_PRECISION / price;
     check(price > 0, "ramx.eos::buyorder: price must be greater than 0");
-    check(bytes > 0, "ramx.eos::buyorder: bytes must be greater than 0");
     check(!config.disabled_pending_order, "ramx.eos::buyorder: pending order has been suspended");
-
-    auto amount = uint128_t(price) * bytes / PRICE_PRECISION;
-    check(amount <= asset::max_amount, "ramx.eos::buyorder: trade quantity too large");
-    auto quantity = asset(amount, ext_in.quantity.symbol);
+    check(ext_in.quantity >= config.min_trade_amount,
+          "ramx.eos::buyorder: quantity must be greater than " + config.min_trade_amount.to_string());
+    check(bytes > 0, "ramx.eos::buyorder: bytes must be greater than 0");
     check(bytes >= config.min_trade_bytes,
           "ramx.eos::buyorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
-    check(quantity >= config.min_trade_amount,
-          "ramx.eos::buyorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
-    check(ext_in.quantity >= quantity, "ramx.eos::buyorder: insufficient balance transferred");
 
     // order
     auto order_id = next_order_id();
@@ -282,20 +278,14 @@ void ramx::do_buyorder(const name& owner, const uint64_t price, const uint64_t b
         row.owner = owner;
         row.price = price;
         row.bytes = bytes;
-        row.quantity = quantity;
+        row.quantity = ext_in.quantity;
         row.created_at = current_time_point();
     });
-
-    // refund
-    const asset refund_amount = ext_in.quantity - quantity;
-    if (refund_amount.amount > 0) {
-        token_transfer(get_self(), owner, {refund_amount, ext_in.contract}, "refund");
-    }
 
     // update stat
     auto stat = _stat.get_or_default();
     stat.num_buy_orders += 1;
-    stat.buy_quantity += quantity;
+    stat.buy_quantity += ext_in.quantity;
     stat.buy_bytes += bytes;
     _stat.set(stat, get_self());
 
@@ -305,7 +295,7 @@ void ramx::do_buyorder(const name& owner, const uint64_t price, const uint64_t b
                  stat.trade_quantity, stat.num_trade_orders);
 
     ramx::orderlog_action orderlog(get_self(), {get_self(), "active"_n});
-    orderlog.send(order_id, ORDER_TYPE_BUY, owner, price, bytes, quantity);
+    orderlog.send(order_id, ORDER_TYPE_BUY, owner, price, bytes, ext_in.quantity);
 }
 
 void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const extended_asset& ext_in) {
@@ -391,7 +381,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
 
 // Memo schemas
 // ============
-// buyorder: `buyorder,<price>,<quantity> (ex:"buyorder,1.0000 EOS,1000" )
+// buyorder: `buyorder,<price>(ex:"buyorder,1.0000 EOS" )
 // buy: `buy,<order_ids>`(ex:buy,1-2)
 ramx::memo_schema ramx::parse_memo(const string& memo) {
     if (memo == "") return {};
@@ -405,13 +395,10 @@ ramx::memo_schema ramx::parse_memo(const string& memo) {
 
     // createspace action
     if (result.action == "buyorder"_n) {
-        check(parts.size() == 3, ERROR_INVALID_MEMO);
+        check(parts.size() == 2, ERROR_INVALID_MEMO);
         // price
         check(rams::utils::is_digit(parts[1]), "ramx.eos::parse_memo: invalid price");
         result.price = std::stoll(parts[1]);
-        // bytes
-        check(rams::utils::is_digit(parts[2]), "ramx.eos::parse_memo: invalid bytes");
-        result.bytes = std::stoll(parts[2]);
     } else if (result.action == "buy"_n) {
         check(parts.size() == 2, ERROR_INVALID_MEMO);
         //order_ids
