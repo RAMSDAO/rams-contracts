@@ -132,6 +132,10 @@
                 {
                     "name": "bytes",
                     "type": "uint64"
+                },
+                {
+                    "name": "frozen_bytes",
+                    "type": "uint64$"
                 }
             ]
         },
@@ -177,20 +181,6 @@
             "fields": [
                 {
                     "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "freeze_row",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
                     "type": "name"
                 },
                 {
@@ -699,13 +689,6 @@
         {
             "name": "deposits",
             "type": "deposit_row",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "freezes",
-            "type": "freeze_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

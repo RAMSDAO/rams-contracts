@@ -144,7 +144,6 @@ cleos get table rambank.eos rambank.eos stat
 cleos get table rambank.eos rambank.eos borrows -L tester1 -U tester1
 cleos get table rambank.eos rambank.eos renttokens
 cleos get table rambank.eos 1 userrewards
-cleos get table rambank.eos rambank.eos freezes -L tester1 -U tester1
 ```
 
 ### `ramx.eos`

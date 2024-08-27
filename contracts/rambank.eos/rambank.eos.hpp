@@ -77,6 +77,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     struct [[eosio::table]] deposit_row {
         name account;
         uint64_t bytes;
+        binary_extension<uint64_t> frozen_bytes;
         uint64_t primary_key() const { return account.value; }
     };
     typedef eosio::multi_index<"deposits"_n, deposit_row> deposit_table;
@@ -95,21 +96,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         uint64_t primary_key() const { return account.value; }
     };
     typedef eosio::multi_index<"borrows"_n, borrow_row> borrow_table;
-
-    /**
-     * @brief freeze table.
-     * @scope get_self()
-     *
-     * @field account - the account that freezed RAM
-     * @field bytes - the amount of RAM freezed.
-     *
-     **/
-    struct [[eosio::table]] freeze_row {
-        name account;
-        uint64_t bytes;
-        uint64_t primary_key() const { return account.value; }
-    };
-    typedef eosio::multi_index<"freezes"_n, freeze_row> freeze_table;
 
     /**
      * @brief supported rent currencies table.
@@ -398,7 +384,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     stat_table _stat = stat_table(_self, _self.value);
     borrow_table _borrow = borrow_table(_self, _self.value);
     deposit_table _deposit = deposit_table(_self, _self.value);
-    freeze_table _freeze = freeze_table(_self, _self.value);
 
     // private method
     uint64_t get_balance(const name& owner, const extended_symbol& token);

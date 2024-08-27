@@ -198,6 +198,7 @@ void bank::do_deposit_ram(const name& owner, const int64_t bytes, const string& 
         deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {
             row.account = owner;
             row.bytes = to_bank;
+            row.frozen_bytes = 0;
         });
     } else {
         _deposit.modify(deposit_itr, same_payer, [&](auto& row) {
@@ -233,12 +234,9 @@ void bank::withdraw(const name& owner, const uint64_t bytes) {
               || stat.used_bytes * RATIO_PRECISION < config.usage_limit_ratio * (stat.deposited_bytes - bytes),
           "rambank.eos::withdraw: insufficient liquidity");
 
-    // freeze bytes
-    auto freeze_itr = _freeze.find(owner.value);
-    uint64_t freeze_bytes = freeze_itr == _freeze.end() ? 0 : freeze_itr->bytes;
-
     auto deposit_itr = _deposit.require_find(owner.value, "rambank.eos::withdraw: [deposits] does not exists");
-    check(deposit_itr->bytes - freeze_bytes >= bytes,
+    uint64_t frozen_bytes = deposit_itr->frozen_bytes.has_value() ? deposit_itr->frozen_bytes.value() : 0;
+    check(deposit_itr->bytes - frozen_bytes >= bytes,
           "rambank.eos::withdraw: deposit balance is not enough to withdraw");
     _deposit.modify(deposit_itr, same_payer, [&](auto& row) {
         row.bytes -= bytes;
@@ -320,11 +318,9 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
     check(bytes > 0, "rambank.eos::transfer: cannot transfer negative");
     check(is_account(to), "rambank.eos::transfer: to account does not exist");
 
-    auto freeze_itr = _freeze.find(from.value);
-    uint64_t freeze_bytes = freeze_itr == _freeze.end() ? 0 : freeze_itr->bytes;
-
     auto from_deposit_itr = _deposit.require_find(from.value, "rambank.eos::transfer: [deposits] does not exists");
-    check(from_deposit_itr->bytes - freeze_bytes >= bytes,
+    uint64_t frozen_bytes = from_deposit_itr->frozen_bytes.has_value() ? from_deposit_itr->frozen_bytes.value() : 0;
+    check(from_deposit_itr->bytes - frozen_bytes >= bytes,
           "rambank.eos::transfer: deposit balance is not enough to transfer");
 
     _deposit.modify(from_deposit_itr, same_payer, [&](auto& row) {
@@ -336,6 +332,7 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
         to_deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {
             row.account = to;
             row.bytes = bytes;
+            row.frozen_bytes = 0;
         });
     } else {
         _deposit.modify(to_deposit_itr, same_payer, [&](auto& row) {
@@ -360,25 +357,21 @@ void bank::freeze(const name& owner, const uint64_t bytes) {
     check(bytes > 0, "rambank.eos::freeze: bytes must be greater than 0");
 
     auto deposit_itr = _deposit.require_find(owner.value, "rambank.eos::freeze: [deposits] does not exists");
-    auto freeze_itr = _freeze.find(owner.value);
-    uint64_t freeze_bytes = freeze_itr == _freeze.end() ? 0 : freeze_itr->bytes;
+    uint64_t frozen_bytes = deposit_itr->frozen_bytes.has_value() ? deposit_itr->frozen_bytes.value() : 0;
 
-    check(deposit_itr->bytes - freeze_bytes >= bytes, "rambank.eos::freeze: deposit balance is not enough to freezed");
+    check(deposit_itr->bytes - frozen_bytes >= bytes, "rambank.eos::freeze: deposit balance is not enough to freezed");
 
-    if (freeze_itr == _freeze.end()) {
-        freeze_itr = _freeze.emplace(get_self(), [&](auto& row) {
-            row.account = owner;
-            row.bytes = bytes;
-        });
-    } else {
-        _freeze.modify(freeze_itr, same_payer, [&](auto& row) {
-            row.bytes += bytes;
-        });
-    }
+    _deposit.modify(deposit_itr, same_payer, [&](auto& row) {
+        if (row.frozen_bytes.has_value()) {
+            row.frozen_bytes = row.frozen_bytes.value() + bytes;
+        } else {
+            row.frozen_bytes = bytes;
+        }
+    });
 
     // log
     bank::freezelog_action freezelog(get_self(), {get_self(), "active"_n});
-    freezelog.send(owner, bytes, freeze_itr->bytes);
+    freezelog.send(owner, bytes, deposit_itr->frozen_bytes.value());
 }
 
 [[eosio::action]]
@@ -386,16 +379,17 @@ void bank::unfreeze(const name& owner, const uint64_t bytes) {
     require_auth(RAMX_EOS);
 
     check(bytes > 0, "rambank.eos::unfreeze: bytes must be greater than 0");
-    auto freeze_itr = _freeze.require_find(owner.value, "");
-    check(freeze_itr->bytes >= bytes, "rambank.eos::unfreeze: unfrozen bytes must be less than frozen bytes");
+    auto deposit_itr = _deposit.require_find(owner.value, "rambank.eos::unfreeze: [deposits] does not exists");
+    check(deposit_itr->frozen_bytes.value() >= bytes,
+          "rambank.eos::unfreeze: unfrozen bytes must be less than frozen bytes");
 
-    _freeze.modify(freeze_itr, same_payer, [&](auto& row) {
-        row.bytes -= bytes;
+    _deposit.modify(deposit_itr, same_payer, [&](auto& row) {
+        row.frozen_bytes = row.frozen_bytes.value() - bytes;
     });
 
     // log
     bank::unfreezelog_action unfreezelog(get_self(), {get_self(), "active"_n});
-    unfreezelog.send(owner, bytes, freeze_itr->bytes);
+    unfreezelog.send(owner, bytes, deposit_itr->frozen_bytes.value());
 }
 
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {

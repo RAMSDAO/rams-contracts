@@ -168,9 +168,9 @@ namespace rambank_eos {
 
     export function getFreeze(account: string): number {
         let key = Name.from(account).value.value
-        const freeze = contracts.rambank.tables.freezes().getTableRow(key)
-        if (freeze) {
-            return freeze.bytes
+        const deposit = contracts.rambank.tables.deposits().getTableRow(key)
+        if (deposit) {
+            return deposit.frozen_bytes
         }
         return 0
     }
