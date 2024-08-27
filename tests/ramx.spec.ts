@@ -54,16 +54,6 @@ rewardbank.setPermissions([
         }),
     }),
 ])
-function currentTime(): string {
-    return TimePointSec.fromMilliseconds(blockchain.timestamp.toMilliseconds()).toString()
-}
-
-function getRamBytes(account: string) {
-    const scope = Name.from(account).value.value
-    const row = contracts.eosio.tables.userres(scope).getTableRows()[0]
-    if (!row) return 0
-    return row.ram_bytes
-}
 
 const getTokenBalance = (account: string, contract: string | Account, symcode: string): number => {
     let scope = Name.from(account).value.value
@@ -82,24 +72,6 @@ const muldiv = (x: number, y: number, z: number) => {
     return Number((BigInt(x) * BigInt(y)) / BigInt(z))
 }
 
-const getSupply = (contract: string, symcode: string): number => {
-    const scope = Asset.SymbolCode.from(symcode).value.value
-    const result = blockchain.getAccount(Name.from(contract))?.tables.stat(scope).getTableRow(scope)
-    if (result?.supply) {
-        return Asset.from(result.supply).units.toNumber()
-    }
-    return 0
-}
-interface ExtendedAsset {
-    quantity: string
-    contract: string
-}
-
-interface ExtendedSymbol {
-    sym: string
-    contract: string
-}
-
 /** rambank.eos **/
 namespace rambank_eos {
     export function getDeposit(account: string): number {
@@ -113,9 +85,9 @@ namespace rambank_eos {
 
     export function getFreeze(account: string): number {
         let key = Name.from(account).value.value
-        const freeze = contracts.rambank.tables.freezes().getTableRow(key)
-        if (freeze) {
-            return freeze.bytes
+        const deposit = contracts.rambank.tables.deposits().getTableRow(key)
+        if (deposit) {
+            return deposit.frozen_bytes
         }
         return 0
     }
@@ -217,6 +189,7 @@ describe('rams', () => {
             await contracts.ramx.actions.feeconfig(['fees.eos', 100]).send('ramx.eos')
             expect(ramx_eos.getConfig()).toEqual({
                 disabled_pending_order: false,
+                disabled_cancel_order: false,
                 disabled_trade: false,
                 fee_account: 'fees.eos',
                 fee_ratio: 100,
@@ -236,6 +209,7 @@ describe('rams', () => {
             await contracts.ramx.actions.tradeconfig(['0.1000 EOS', 1000]).send('ramx.eos')
             expect(ramx_eos.getConfig()).toEqual({
                 disabled_pending_order: false,
+                disabled_cancel_order: false,
                 disabled_trade: false,
                 fee_account: 'fees.eos',
                 fee_ratio: 100,
@@ -246,15 +220,16 @@ describe('rams', () => {
 
         test('statusconfig: missing required authority ramx.eos', async () => {
             await expectToThrow(
-                contracts.ramx.actions.statusconfig([true, true]).send('account1'),
+                contracts.ramx.actions.statusconfig([true, true, true]).send('account1'),
                 'missing required authority ramx.eos'
             )
         })
 
         test('statusconfig: disabled', async () => {
-            await contracts.ramx.actions.statusconfig([true, true]).send('ramx.eos')
+            await contracts.ramx.actions.statusconfig([true, true, true]).send('ramx.eos')
             expect(ramx_eos.getConfig()).toEqual({
                 disabled_pending_order: true,
+                disabled_cancel_order: true,
                 disabled_trade: true,
                 fee_account: 'fees.eos',
                 fee_ratio: 100,
@@ -286,7 +261,7 @@ describe('rams', () => {
         })
 
         test('statusconfig: enabled', async () => {
-            await contracts.ramx.actions.statusconfig([false, false]).send('ramx.eos')
+            await contracts.ramx.actions.statusconfig([false, false, false]).send('ramx.eos')
         })
 
         test('sellorder: missing required authority account1', async () => {
@@ -572,41 +547,55 @@ describe('rams', () => {
             })
         })
 
-        test('celorder: missing required authority', async () => {
+        test('cancelorder: missing required authority', async () => {
             await expectToThrow(
-                contracts.ramx.actions.celorder(['account2', [3]]).send('account1'),
+                contracts.ramx.actions.cancelorder(['account2', [3]]).send('account1'),
                 'missing required authority account2'
             )
         })
 
-        test('celorder: order_ids cannot be empty', async () => {
+        test('cancelorder: order_ids cannot be empty', async () => {
             await expectToThrow(
-                contracts.ramx.actions.celorder(['account2', []]).send('account2'),
-                'eosio_assert: ramx.eos::celorder: order_ids cannot be empty'
+                contracts.ramx.actions.cancelorder(['account2', []]).send('account2'),
+                'eosio_assert: ramx.eos::cancelorder: order_ids cannot be empty'
             )
         })
 
-        test('celorder: invalid duplicate order_ids', async () => {
+        test('cancelorder: invalid duplicate order_ids', async () => {
             await expectToThrow(
-                contracts.ramx.actions.celorder(['account2', [3, 3]]).send('account2'),
-                'eosio_assert: ramx.eos::celorder: invalid duplicate order_ids'
+                contracts.ramx.actions.cancelorder(['account2', [3, 3]]).send('account2'),
+                'eosio_assert: ramx.eos::cancelorder: invalid duplicate order_ids'
             )
         })
 
-        test('celorder: there are no cancelable orders', async () => {
+        test('cancelorder: no orders to cancel', async () => {
             await expectToThrow(
-                contracts.ramx.actions.celorder(['account2', [3]]).send('account2'),
-                'eosio_assert: ramx.eos::celorder: there are no cancelable orders'
+                contracts.ramx.actions.cancelorder(['account2', [3]]).send('account2'),
+                'eosio_assert: ramx.eos::cancelorder: no orders to cancel'
             )
         })
 
-        test('celorder', async () => {
+        test('create orders', async () => {
             await contracts.eos.actions
                 .transfer(['account2', 'ramx.eos', '0.3000 EOS', 'buyorder,10000'])
                 .send('account2')
 
             await contracts.ramx.actions.sellorder(['account2', 200000, 1000]).send('account2')
+        })
 
+        test('cancelorder: cancel order has been suspended', async () => {
+            await contracts.ramx.actions.statusconfig([false, false, true]).send('ramx.eos')
+            await expectToThrow(
+                contracts.ramx.actions.cancelorder(['account2', [5, 6]]).send('account2'),
+                'eosio_assert: ramx.eos::cancelorder: cancel order has been suspended'
+            )
+        })
+
+        test('cancelorder: enabled', async () => {
+            await contracts.ramx.actions.statusconfig([false, false, false]).send('ramx.eos')
+        })
+
+        test('cancelorder', async () => {
             expect(ramx_eos.getStat()).toEqual({
                 buy_bytes: 3000,
                 buy_quantity: '0.3000 EOS',
@@ -621,7 +610,7 @@ describe('rams', () => {
 
             const before_eos_balance = getTokenBalance('account2', 'eosio.token', 'EOS')
             const before_freeze = rambank_eos.getFreeze('account2')
-            await contracts.ramx.actions.celorder(['account2', [5, 6]]).send('account2')
+            await contracts.ramx.actions.cancelorder(['account2', [5, 6]]).send('account2')
             const after_eos_balance = getTokenBalance('account2', 'eosio.token', 'EOS')
             const after_freeze = rambank_eos.getFreeze('account2')
             expect(after_eos_balance - before_eos_balance).toEqual(Asset.from('0.3000 EOS').units.toNumber())

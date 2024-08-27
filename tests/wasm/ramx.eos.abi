@@ -4,7 +4,7 @@
     "types": [],
     "structs": [
         {
-            "name": "celorder",
+            "name": "cancelorder",
             "base": "",
             "fields": [
                 {
@@ -33,6 +33,10 @@
             "fields": [
                 {
                     "name": "disabled_pending_order",
+                    "type": "bool"
+                },
+                {
+                    "name": "disabled_cancel_order",
                     "type": "bool"
                 },
                 {
@@ -144,6 +148,11 @@
                     "type": "asset"
                 }
             ]
+        },
+        {
+            "name": "rm",
+            "base": "",
+            "fields": []
         },
         {
             "name": "sell",
@@ -264,6 +273,10 @@
                 {
                     "name": "disabled_pending_order",
                     "type": "bool"
+                },
+                {
+                    "name": "disabled_cancel_order",
+                    "type": "bool"
                 }
             ]
         },
@@ -340,8 +353,8 @@
     ],
     "actions": [
         {
-            "name": "celorder",
-            "type": "celorder",
+            "name": "cancelorder",
+            "type": "cancelorder",
             "ricardian_contract": ""
         },
         {
@@ -357,6 +370,11 @@
         {
             "name": "orderlog",
             "type": "orderlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rm",
+            "type": "rm",
             "ricardian_contract": ""
         },
         {
@@ -424,7 +442,7 @@
     "variants": [],
     "action_results": [
         {
-            "name": "celorder",
+            "name": "cancelorder",
             "result_type": "uint64[]"
         },
         {

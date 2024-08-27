@@ -29,12 +29,14 @@ void ramx::tradeconfig(const asset& min_trade_amount, const uint64_t min_trade_b
 }
 
 [[eosio::action]]
-void ramx::statusconfig(const bool disabled_trade, const bool disabled_pending_order) {
+void ramx::statusconfig(const bool disabled_trade, const bool disabled_pending_order,
+                        const bool disabled_cancel_order) {
     require_auth(get_self());
 
     auto config = _config.get_or_default();
     config.disabled_trade = disabled_trade;
     config.disabled_pending_order = disabled_pending_order;
+    config.disabled_cancel_order = disabled_cancel_order;
     _config.set(config, get_self());
 }
 
@@ -91,11 +93,15 @@ void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t byt
 }
 
 [[eosio::action]]
-vector<uint64_t> ramx::celorder(const name& owner, const vector<uint64_t> order_ids) {
+vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> order_ids) {
     require_auth(owner);
 
-    check(order_ids.size() > 0, "ramx.eos::celorder: order_ids cannot be empty");
-    check(!has_duplicate(order_ids), "ramx.eos::celorder: invalid duplicate order_ids");
+    auto config = _config.get();
+
+    check(order_ids.size() > 0, "ramx.eos::cancelorder: order_ids cannot be empty");
+    check(!has_duplicate(order_ids), "ramx.eos::cancelorder: invalid duplicate order_ids");
+    check(!has_duplicate(order_ids), "ramx.eos::cancelorder: invalid duplicate order_ids");
+    check(!config.disabled_cancel_order, "ramx.eos::cancelorder: cancel order has been suspended");
 
     auto stat = _stat.get_or_default();
 
@@ -126,7 +132,7 @@ vector<uint64_t> ramx::celorder(const name& owner, const vector<uint64_t> order_
         canceled_order_ids.push_back(order_id);
     }
 
-    check(canceled_order_ids.size() > 0, "ramx.eos::celorder: there are no cancelable orders");
+    check(canceled_order_ids.size() > 0, "ramx.eos::cancelorder: no orders to cancel");
 
     _stat.set(stat, get_self());
 
@@ -138,7 +144,7 @@ vector<uint64_t> ramx::celorder(const name& owner, const vector<uint64_t> order_
 
     //  refund
     if (refund_quantity.amount > 0) {
-        token_transfer(get_self(), owner, {refund_quantity, EOS_CONTRACT}, "cancel order");
+        token_transfer(get_self(), owner, {refund_quantity, EOS_CONTRACT}, "Transaction Fees");
     }
 
     // log
@@ -207,11 +213,11 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
 
     // transfer eos to seller
     const auto to_seller = total_quantity - total_fees;
-    token_transfer(get_self(), owner, {to_seller, EOS_CONTRACT}, "sell ram");
+    token_transfer(get_self(), owner, {to_seller, EOS_CONTRACT}, "Buy RAMX");
 
     // transfer fees
     if (total_fees.amount > 0) {
-        token_transfer(get_self(), config.fee_account, {total_fees, EOS_CONTRACT}, "sell ram");
+        token_transfer(get_self(), config.fee_account, {total_fees, EOS_CONTRACT}, "Transaction Fees");
     }
 
     // update stat
@@ -327,7 +333,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
 
         // transfer eos to seller
         const auto to_seller = order_itr->quantity - fees;
-        token_transfer(get_self(), order_itr->owner, {to_seller, ext_in.contract}, "buy ram");
+        token_transfer(get_self(), order_itr->owner, {to_seller, ext_in.contract}, "Buy RAMX");
 
         // unfreeze
         bank::unfreeze_action unfreeze(RAM_BANK_CONTRACT, {get_self(), "active"_n});
@@ -351,7 +357,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
 
     // transfer fees
     if (total_fees.amount > 0) {
-        token_transfer(get_self(), config.fee_account, {total_fees, EOS_CONTRACT}, "sell ram");
+        token_transfer(get_self(), config.fee_account, {total_fees, EOS_CONTRACT}, "Transaction Fees");
     }
 
     // update stat

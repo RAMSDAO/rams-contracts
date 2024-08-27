@@ -47,6 +47,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      *
      * @field disabled_trade - trade order
      * @field disabled_pending_order - pending order status
+     * @field disabled_cancel_order - cancel order status
      * @field min_trade_amount - minimum transaction eos quantity
      * @field min_trade_bytes - minimum transaction ram bytes
      * @field fee_account - the account that receives the handling fee
@@ -55,6 +56,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      **/
     struct [[eosio::table]] config_row {
         bool disabled_pending_order;
+        bool disabled_cancel_order;
         bool disabled_trade;
         asset min_trade_amount = {0, EOS};
         uint64_t min_trade_bytes = 1000;
@@ -151,10 +153,11 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      * - **authority**: `get_self()`
      * @param disabled_trade - trade order
      * @param disabled_pending_order - pending order status
+     * @param disabled_cancel_order - cancel order status
      * 
      */
     [[eosio::action]]
-    void statusconfig(const bool disabled_trade, const bool disabled_pending_order);
+    void statusconfig(const bool disabled_trade, const bool disabled_pending_order, const bool disabled_cancel_order);
 
     /**
      * Create sell order action.
@@ -179,7 +182,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      *
      */
     [[eosio::action]]
-    vector<uint64_t> celorder(const name& owner, const vector<uint64_t> order_ids);
+    vector<uint64_t> cancelorder(const name& owner, const vector<uint64_t> order_ids);
 
     /**
      * Sell ram action.
@@ -219,6 +222,11 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
 
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
+
+    [[eosio::action]]
+    void rm() {
+        _config.remove();
+    }
 
     // action wrappers
     using orderlog_action = eosio::action_wrapper<"orderlog"_n, &ramx::orderlog>;

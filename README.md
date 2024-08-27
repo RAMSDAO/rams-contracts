@@ -158,7 +158,7 @@ $ cleos push action ramx.eos feeconfig '{"fee_account": "fees.eos", "fee_ratio":
 $ cleos push action ramx.eos tradeconfig '{"min_trade_amount": "0.1000 EOS", "min_trade_bytes": 1000}' -p ramx.eos
 
 # status config @ramx.eos
-$ cleos push action rambank.eos statusconfig '{"disabled_trade": true, "disabled_pending_order": true}' -p ramx.eos
+$ cleos push action rambank.eos statusconfig '{"disabled_trade": true, "disabled_pending_order": true, "disabled_cancel_order": true}' -p ramx.eos
 
 # create sell order @owner (PRICE_PRECISION: 10^8)
 $ cleos push action ramx.eos sellorder '{"owner": "tester1", "price": 600000, "bytes": 1000}' -p tester1
@@ -166,14 +166,14 @@ $ cleos push action ramx.eos sellorder '{"owner": "tester1", "price": 600000, "b
 # sell @owner
 $ cleos push action ramx.eos sell '{"owner": "tester1", "order_ids": [1,2]}' -p tester1
 
-# create buy order @owner (memo: "buyorder,<price>,<bytes>", PRICE_PRECISION: 10^8)
-$ cleos push action eosio.token transfer '{"from": "tester1", "to": "ramx.eos", "quantity": "10.0000 EOS", "memo": "buyorder,500000,20000"}' -p tester1
+# create buy order @owner (memo: "buyorder,<price>", PRICE_PRECISION: 10^8)
+$ cleos push action eosio.token transfer '{"from": "tester1", "to": "ramx.eos", "quantity": "10.0000 EOS", "memo": "buyorder,500000"}' -p tester1
 
 # buy @owner (memo: "buy,<order_ids>")
 $ cleos push action eosio.token transfer '{"from": "tester1", "to": "ramx.eos", "quantity": "10.0000 EOS", "memo": "buy,3-4"}' -p tester1
 
 # cancel order @owner
-$ cleos push action ramx.eos celorder '{"owner": "tester1", "order_ids": [1,2,3,4]}' -p tester1
+$ cleos push action ramx.eos cancelorder '{"owner": "tester1", "order_ids": [1,2,3,4]}' -p tester1
 ```
 
 #### Viewing Table Information
