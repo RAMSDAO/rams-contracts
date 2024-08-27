@@ -144,7 +144,7 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
 
     //  refund
     if (refund_quantity.amount > 0) {
-        token_transfer(get_self(), owner, {refund_quantity, EOS_CONTRACT}, "Transaction Fees");
+        token_transfer(get_self(), owner, {refund_quantity, EOS_CONTRACT}, "Return amount for buying RAMX");
     }
 
     // log
@@ -199,7 +199,7 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
         // transfer ram to buyer
         if (owner != order_itr->owner) {
             bank::transfer_action transfer(RAM_BANK_CONTRACT, {get_self(), "active"_n});
-            transfer.send(owner, order_itr->owner, order_itr->bytes, "sell ram");
+            transfer.send(owner, order_itr->owner, order_itr->bytes, "Sell RAMX");
         }
 
         total_fees += fees;
@@ -342,7 +342,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
         // transfer ram to buyer
         if (order_itr->owner != owner) {
             bank::transfer_action transfer(RAM_BANK_CONTRACT, {get_self(), "active"_n});
-            transfer.send(order_itr->owner, owner, order_itr->bytes, "buy ram");
+            transfer.send(order_itr->owner, owner, order_itr->bytes, "Buy RAMX");
         }
 
         total_fees += fees;
@@ -372,7 +372,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
 
     // refund
     if (remain_quantity.amount > 0) {
-        token_transfer(get_self(), owner, {remain_quantity, ext_in.contract}, "refund");
+        token_transfer(get_self(), owner, {remain_quantity, ext_in.contract}, "Return amount for buying RAMX");
     }
 
     // log
