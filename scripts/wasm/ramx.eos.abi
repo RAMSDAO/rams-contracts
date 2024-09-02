@@ -150,11 +150,6 @@
             ]
         },
         {
-            "name": "rm",
-            "base": "",
-            "fields": []
-        },
-        {
             "name": "sell",
             "base": "",
             "fields": [
@@ -370,11 +365,6 @@
         {
             "name": "orderlog",
             "type": "orderlog",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "rm",
-            "type": "rm",
             "ricardian_contract": ""
         },
         {

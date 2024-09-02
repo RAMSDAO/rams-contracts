@@ -46,12 +46,12 @@ void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t byt
 
     auto config = _config.get();
 
-    check(price > 0, "ramx.eos::sellorder: price must be greater than 0");
+    check(price > 0 && price <= MAX_PRICE, "ramx.eos::sellorder: price must be greater than 0 and less than 10^8");
     check(bytes > 0, "ramx.eos::sellorder: bytes must be greater than 0");
     check(!config.disabled_pending_order, "ramx.eos::sellorder: pending order has been suspended");
 
     auto amount = uint128_t(price) * bytes / PRICE_PRECISION;
-    check(amount <= asset::max_amount, "ramx.eos::sellorder: trade quantity too large");
+    check(amount <= MAX_TRADE_VOLUME, "ramx.eos::sellorder: trading volume cannot exceed 10,000,000 EOS");
 
     auto quantity = asset(amount, EOS);
 
@@ -99,7 +99,6 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
     auto config = _config.get();
 
     check(order_ids.size() > 0, "ramx.eos::cancelorder: order_ids cannot be empty");
-    check(!has_duplicate(order_ids), "ramx.eos::cancelorder: invalid duplicate order_ids");
     check(!has_duplicate(order_ids), "ramx.eos::cancelorder: invalid duplicate order_ids");
     check(!config.disabled_cancel_order, "ramx.eos::cancelorder: cancel order has been suspended");
 
@@ -184,7 +183,8 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
     uint64_t total_bytes = 0;
     vector<asset> fee_list;
     vector<uint64_t> trade_order_ids;
-    uint64_t remain_bytes = deposit_itr->bytes;
+    uint64_t frozen_bytes = deposit_itr->frozen_bytes.has_value() ? deposit_itr->frozen_bytes.value() : 0;
+    uint64_t remain_bytes = deposit_itr->bytes - frozen_bytes;
     for (const auto& order_id : order_ids) {
         auto order_itr = _order.find(order_id);
 
@@ -205,6 +205,7 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
         total_fees += fees;
         total_quantity += order_itr->quantity;
         total_bytes += order_itr->bytes;
+        remain_bytes -= order_itr->bytes;
         fee_list.push_back(fees);
         trade_order_ids.push_back(order_id);
     }
@@ -267,8 +268,11 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
 void ramx::do_buyorder(const name& owner, const uint64_t price, const extended_asset& ext_in) {
     auto config = _config.get();
 
+    check(ext_in.quantity.amount <= MAX_TRADE_VOLUME,
+          "ramx.eos::buyorder: trading volume cannot exceed 10,000,000 EOS");
+    check(price > 0 && price <= MAX_PRICE, "ramx.eos::buyorder: price must be greater than 0 and less than 10^8");
+
     auto bytes = uint128_t(ext_in.quantity.amount) * PRICE_PRECISION / price;
-    check(price > 0, "ramx.eos::buyorder: price must be greater than 0");
     check(!config.disabled_pending_order, "ramx.eos::buyorder: pending order has been suspended");
     check(ext_in.quantity >= config.min_trade_amount,
           "ramx.eos::buyorder: quantity must be greater than " + config.min_trade_amount.to_string());

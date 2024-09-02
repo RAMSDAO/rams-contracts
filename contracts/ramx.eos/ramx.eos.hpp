@@ -18,6 +18,9 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
     static constexpr name EOS_CONTRACT = "eosio.token"_n;
     static constexpr symbol EOS = symbol{"EOS", 4};
 
+    static constexpr uint64_t MAX_PRICE = 100000000LL;
+    static constexpr uint64_t MAX_TRADE_VOLUME = 100000000000LL;
+
     static constexpr name ORDER_TYPE_BUY = "buy"_n;
     static constexpr name ORDER_TYPE_SELL = "sell"_n;
 
@@ -222,11 +225,6 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
 
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
-
-    [[eosio::action]]
-    void rm() {
-        _config.remove();
-    }
 
     // action wrappers
     using orderlog_action = eosio::action_wrapper<"orderlog"_n, &ramx::orderlog>;
