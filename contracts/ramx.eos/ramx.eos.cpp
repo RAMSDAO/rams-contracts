@@ -104,16 +104,13 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
 
     auto stat = _stat.get_or_default();
 
-    uint64_t unfreeze_bytes;
+    uint64_t unfreeze_bytes = 0;
     asset refund_quantity{0, EOS};
     vector<uint64_t> canceled_order_ids;
     for (const auto order_id : order_ids) {
         auto order_itr = _order.find(order_id);
 
         if (order_itr == _order.end() || order_itr->owner != owner) continue;
-
-        // erase order
-        _order.erase(order_itr);
 
         if (order_itr->type == ORDER_TYPE_BUY) {
             refund_quantity += order_itr->quantity;
@@ -128,6 +125,10 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
             stat.sell_quantity -= order_itr->quantity;
             stat.sell_bytes -= order_itr->bytes;
         }
+
+        // erase order
+        _order.erase(order_itr);
+
         canceled_order_ids.push_back(order_id);
     }
 
@@ -193,9 +194,6 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
         // fees
         const auto fees = order_itr->quantity * config.fee_ratio / RATIO_PRECISION;
 
-        // erase order
-        _order.erase(order_itr);
-
         // transfer ram to buyer
         if (owner != order_itr->owner) {
             bank::transfer_action transfer(RAM_BANK_CONTRACT, {get_self(), "active"_n});
@@ -208,6 +206,9 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
         remain_bytes -= order_itr->bytes;
         fee_list.push_back(fees);
         trade_order_ids.push_back(order_id);
+
+        // erase order
+        _order.erase(order_itr);
     }
 
     check(trade_order_ids.size() > 0, "ramx.eos::sell: there are no tradeable orders");
@@ -329,9 +330,6 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
         if (order_itr == _order.end() || order_itr->type != ORDER_TYPE_SELL || remain_quantity < order_itr->quantity)
             continue;
 
-        // erase order
-        _order.erase(order_itr);
-
         // fees
         const auto fees = order_itr->quantity * config.fee_ratio / RATIO_PRECISION;
 
@@ -355,6 +353,9 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
         remain_quantity -= order_itr->quantity;
         fee_list.push_back(fees);
         trade_order_ids.push_back(order_id);
+
+        // erase order
+        _order.erase(order_itr);
     }
 
     check(trade_order_ids.size() > 0, "ramx.eos::buy: there are no tradeable orders");
