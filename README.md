@@ -158,7 +158,7 @@ $ cleos push action ramx.eos feeconfig '{"fee_account": "fees.eos", "fee_ratio":
 $ cleos push action ramx.eos tradeconfig '{"min_trade_amount": "0.1000 EOS", "min_trade_bytes": 1000}' -p ramx.eos
 
 # status config @ramx.eos
-$ cleos push action rambank.eos statusconfig '{"disabled_trade": true, "disabled_pending_order": true, "disabled_cancel_order": true}' -p ramx.eos
+$ cleos push action ramx.eos statusconfig '{"disabled_trade": true, "disabled_pending_order": true, "disabled_cancel_order": true}' -p ramx.eos
 
 # create sell order @owner (PRICE_PRECISION: 10^8)
 $ cleos push action ramx.eos sellorder '{"owner": "tester1", "price": 600000, "bytes": 1000}' -p tester1
