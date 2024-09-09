@@ -189,8 +189,8 @@ cleos get table ramx.eos ramx.eos orders -L 1 -U 1
 cleos get table ramx.eos ramx.eos orders --index 2 --key-type i64 -L tester1 -U tester1
 
 # order (key: type + owner)
-cleos get table ramx.eos ramx.eos orders --index 4 --key-type i128 -L 1000 -U 2000
+cleos get table ramx.eos ramx.eos orders --index 3 --key-type i128 -L 1000 -U 2000
 
 # order (key: type + price)
-cleos get table ramx.eos ramx.eos orders --index 5 --key-type i128 -L 1000 -U 2000
+cleos get table ramx.eos ramx.eos orders --index 4 --key-type i128 -L 1000 -U 2000
 ```
