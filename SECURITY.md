@@ -56,7 +56,7 @@ The steps needed to reproduce the bug.
 
 The potential implications of the vulnerability being abused.
 
-Summary
+## Summary
 
 By submitting your report, you grant RAMSDAO any and all rights, including intellectual property rights, needed to validate, mitigate, and disclose the vulnerability. All reward decisions, including eligibility for and amounts of the rewards and the manner in which such rewards will be paid, are made by RAMSDAO.
 
