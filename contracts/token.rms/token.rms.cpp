@@ -1,157 +1,64 @@
+#include <token.rms/config.cpp>
+#include <token.rms/token.cpp>
 #include <token.rms/token.rms.hpp>
 
 namespace eosio {
+    void token::issue_rams(const name to, const int64_t bytes) {
+        check(bytes > 0, "must transfer positive quantity");
+        check(to != get_self(), "cannot issue ram to self");
+        const asset quantity{bytes, RAMS_SYMBOL};
 
-    void token::create(const name& issuer, const asset& maximum_supply) {
-        require_auth(get_self());
+        // ramtransfer to ramsbank
+        eosiosystem::system_contract::ramtransfer_action ramtransfer_act{"eosio"_n, {get_self(), "active"_n}};
+        ramtransfer_act.send(get_self(), RAMS_BANK, bytes, "convert ram to rams");
 
-        auto sym = maximum_supply.symbol;
-        check(maximum_supply.is_valid(), "invalid supply");
-        check(maximum_supply.amount > 0, "max-supply must be positive");
+        // issue rams
+        issue_action issue_act{get_self(), {get_self(), "active"_n}};
+        issue_act.send(get_self(), quantity, "convert ram to rams");
 
-        stats statstable(get_self(), sym.code().raw());
-        auto existing = statstable.find(sym.code().raw());
-        check(existing == statstable.end(), "token with symbol already exists");
-
-        statstable.emplace(get_self(), [&](auto& s) {
-            s.supply.symbol = maximum_supply.symbol;
-            s.max_supply = maximum_supply;
-            s.issuer = issuer;
-        });
+        // transfer RAMS tokens to user
+        transfer_action transfer_act{get_self(), {get_self(), "active"_n}};
+        transfer_act.send(get_self(), to, quantity, "convert ram to rams");
     }
 
-    void token::issue(const name& to, const asset& quantity, const string& memo) {
-        auto sym = quantity.symbol;
-        check(sym.is_valid(), "invalid symbol name");
-        check(memo.size() <= 256, "memo has more than 256 bytes");
+    [[eosio::on_notify("eosio::ramtransfer")]]
+    void token::on_ramtransfer(const name from, const name to, const int64_t bytes, const string memo) {
+        // ignore transfers not sent to this contract
+        if (to != get_self()) {
+            return;
+        }
+        if (memo == "ignore") {
+            return;
+        }  // allow for internal RAM transfers
 
-        stats statstable(get_self(), sym.code().raw());
-        auto existing = statstable.find(sym.code().raw());
-        check(existing != statstable.end(), "token with symbol does not exist, create token before issue");
-        const auto& st = *existing;
-        check(to == st.issuer, "tokens can only be issued to issuer account");
+        // check status
+        config_row config = _config.get_or_default();
+        check(config.ram2rams_enabled, "ram to rams is currently disabled");
 
-        require_auth(st.issuer);
-        check(quantity.is_valid(), "invalid quantity");
-        check(quantity.amount > 0, "must issue positive quantity");
-
-        check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
-        check(quantity.amount <= st.max_supply.amount - st.supply.amount, "quantity exceeds available supply");
-
-        statstable.modify(st, same_payer, [&](auto& s) { s.supply += quantity; });
-
-        add_balance(st.issuer, quantity, st.issuer);
+        issue_rams(from, bytes);
     }
 
-    void token::issuefixed(const name& to, const asset& supply, const string& memo) {
-        const asset circulating_supply = get_supply(get_self(), supply.symbol.code());
-        check(circulating_supply.symbol == supply.symbol, "symbol precision mismatch");
-        const asset quantity = supply - circulating_supply;
-        issue(to, quantity, memo);
-    }
-
-    void token::setmaxsupply(const name& issuer, const asset& maximum_supply) {
-        auto sym = maximum_supply.symbol;
-        check(maximum_supply.is_valid(), "invalid supply");
-        check(maximum_supply.amount > 0, "max-supply must be positive");
-
-        stats statstable(get_self(), sym.code().raw());
-        auto& st = statstable.get(sym.code().raw(), "token supply does not exist");
-        check(issuer == st.issuer, "only issuer can set token maximum supply");
-        require_auth(st.issuer);
-
-        check(maximum_supply.symbol == st.supply.symbol, "symbol precision mismatch");
-        check(maximum_supply.amount >= st.supply.amount, "max supply is less than available supply");
-
-        statstable.modify(st, same_payer, [&](auto& s) { s.max_supply = maximum_supply; });
-    }
-
-    void token::retire(const asset& quantity, const string& memo) {
-        auto sym = quantity.symbol;
-        check(sym.is_valid(), "invalid symbol name");
-        check(memo.size() <= 256, "memo has more than 256 bytes");
-
-        stats statstable(get_self(), sym.code().raw());
-        auto existing = statstable.find(sym.code().raw());
-        check(existing != statstable.end(), "token with symbol does not exist");
-        const auto& st = *existing;
-
-        require_auth(st.issuer);
-        check(quantity.is_valid(), "invalid quantity");
-        check(quantity.amount > 0, "must retire positive quantity");
-
-        check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
-
-        statstable.modify(st, same_payer, [&](auto& s) { s.supply -= quantity; });
-
-        sub_balance(st.issuer, quantity);
-    }
-
-    void token::transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
-        check(from != to, "cannot transfer to self");
+    [[eosio::on_notify("eosio.token::transfer")]]
+    void token::on_eostransfer(const name from, const name to, const asset quantity, const string memo) {
+        if (from == _self || to != _self) {
+            return;
+        }
         require_auth(from);
-        check(is_account(to), "to account does not exist");
-        auto sym = quantity.symbol.code();
-        stats statstable(get_self(), sym.raw());
-        const auto& st = statstable.get(sym.raw());
-
-        require_recipient(from);
-        require_recipient(to);
-
-        check(quantity.is_valid(), "invalid quantity");
         check(quantity.amount > 0, "must transfer positive quantity");
-        check(quantity.symbol == st.supply.symbol, "symbol precision mismatch");
-        check(memo.size() <= 256, "memo has more than 256 bytes");
+        // check status
+        config_row config = _config.get_or_default();
+        check(config.eos2rams_enabled, "eos to rams is currently disabled");
 
-        auto payer = has_auth(to) ? to : from;
-
-        sub_balance(from, quantity);
-        add_balance(to, quantity, payer);
+        action(permission_level{_self, "active"_n}, "eosio"_n, "buyram"_n, make_tuple(_self, _self, quantity)).send();
+        //todo It seems not very feasible to directly convert to eos
     }
 
-    void token::sub_balance(const name& owner, const asset& value) {
-        accounts from_acnts(get_self(), owner.value);
-
-        const auto& from = from_acnts.get(value.symbol.code().raw(), "no balance object found");
-        check(from.balance.amount >= value.amount, "overdrawn balance");
-
-        from_acnts.modify(from, owner, [&](auto& a) { a.balance -= value; });
-    }
-
-    void token::add_balance(const name& owner, const asset& value, const name& ram_payer) {
-        accounts to_acnts(get_self(), owner.value);
-        auto to = to_acnts.find(value.symbol.code().raw());
-        if (to == to_acnts.end()) {
-            to_acnts.emplace(ram_payer, [&](auto& a) { a.balance = value; });
-        } else {
-            to_acnts.modify(to, same_payer, [&](auto& a) { a.balance += value; });
+    [[eosio::on_notify("eosio::logbuyram")]]
+    void token::on_logbuyram(const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes) {
+        // ignore buy ram not sent to this contract
+        if (receiver != get_self()) {
+            return;
         }
+        issue_rams(payer, bytes);
     }
-
-    void token::open(const name& owner, const symbol& symbol, const name& ram_payer) {
-        require_auth(ram_payer);
-
-        check(is_account(owner), "owner account does not exist");
-
-        auto sym_code_raw = symbol.code().raw();
-        stats statstable(get_self(), sym_code_raw);
-        const auto& st = statstable.get(sym_code_raw, "symbol does not exist");
-        check(st.supply.symbol == symbol, "symbol precision mismatch");
-
-        accounts acnts(get_self(), owner.value);
-        auto it = acnts.find(sym_code_raw);
-        if (it == acnts.end()) {
-            acnts.emplace(ram_payer, [&](auto& a) { a.balance = asset{0, symbol}; });
-        }
-    }
-
-    void token::close(const name& owner, const symbol& symbol) {
-        require_auth(owner);
-        accounts acnts(get_self(), owner.value);
-        auto it = acnts.find(symbol.code().raw());
-        check(it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect.");
-        check(it->balance.amount == 0, "Cannot close because the balance is not zero.");
-        acnts.erase(it);
-    }
-
 }  // namespace eosio

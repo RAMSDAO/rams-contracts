@@ -1,8 +1,11 @@
 #pragma once
 
+#include <eosio.system/eosio.system.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <string>
+using namespace eosio;
+using namespace std;
 
 namespace eosiosystem {
     class system_contract;
@@ -32,9 +35,33 @@ namespace eosio {
      * table for a token symbol the result is one single entry/row corresponding to the queried symbol token if it was previously created, or nothing,
      * otherwise.
      */
-    class [[eosio::contract("eosio.token")]] token : public contract {
+    class [[eosio::contract("token.rms")]] token : public contract {
        public:
         using contract::contract;
+
+        const symbol RAMS_SYMBOL = symbol("RAMS", 0);
+        const name RAMS_BANK = "testramsbank"_n;  // todo
+
+        [[eosio::action]]
+        void setconfig(const bool ram2rams_enabled, const bool eos2rams_enabled);
+
+        /**
+         * Send system RAM `bytes` to contract to issue `RAMS` tokens to sender.
+         */
+        [[eosio::on_notify("eosio::ramtransfer")]]
+        void on_ramtransfer(const name from, const name to, const int64_t bytes, const string memo);
+
+        /**
+         * Send EOS token to contract to issue `RAMS` tokens to sender.
+         */
+        [[eosio::on_notify("eosio.token::transfer")]]
+        void on_eostransfer(const name from, const name to, const asset quantity, const string memo);
+
+        /**
+         * Buy system RAM `bytes` to contract to issue `RAMS` tokens to payer.
+         */
+        [[eosio::on_notify("eosio::logbuyram")]]
+        void on_logbuyram(const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes);
 
         /**
          * Allows `issuer` account to create a token in supply of `maximum_supply`. If validation is successful a new entry in statstable for token symbol scope
@@ -173,9 +200,38 @@ namespace eosio {
         typedef eosio::multi_index<"accounts"_n, account> accounts;
         typedef eosio::multi_index<"stat"_n, currency_stats> stats;
 
+        /**
+         * ## TABLE `config`
+         *
+         * > configuration settings for the contract, specifically related to RAM management operations
+         *
+         * ### params
+         *
+         * - `{bool} ram2rams_enabled` - whether RAM to RAMS conversion is enabled
+         * - `{bool} eos2rams_enabled` - whether EOS to RAMS conversion is enabled
+         *
+         * ### example
+         *
+         * ```json
+         * {
+         *     "ram2rams_enabled": true,
+         *     "eos2rams_enabled": true
+         * }
+         * ```
+         */
+        struct [[eosio::table("config")]] config_row {
+            bool ram2rams_enabled = true;
+            bool eos2rams_enabled = true;
+        };
+        typedef eosio::singleton<"config"_n, config_row> config_table;
+        config_table _config = config_table(_self, _self.value);
+
        private:
         void sub_balance(const name& owner, const asset& value);
         void add_balance(const name& owner, const asset& value, const name& ram_payer);
+
+        void issue_rams(const name to, const int64_t bytes);
+        void transfer_ram(const int64_t bytes);
     };
 
 }  // namespace eosio
