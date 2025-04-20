@@ -49,16 +49,28 @@ namespace eosio {
         config_row config = _config.get_or_default();
         check(config.eos2rams_enabled, "eos to rams is currently disabled");
 
+        // set eos payer for logbuyram notify
+        config.payer = from;
+        _config.set(config, get_self());
         action(permission_level{_self, "active"_n}, "eosio"_n, "buyram"_n, make_tuple(_self, _self, quantity)).send();
-        //todo It seems not very feasible to directly convert to eos
     }
 
     [[eosio::on_notify("eosio::logbuyram")]]
-    void token::on_logbuyram(const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes) {
+    void token::on_logbuyram(name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes) {
         // ignore buy ram not sent to this contract
         if (receiver != get_self()) {
             return;
         }
+
+        config_row config = _config.get_or_default();
+        if (payer == _self && config.payer.value != 0) {
+            payer = config.payer;
+
+            // set eos payer to 0 to prevent double spending
+            config.payer = name{0};
+            _config.set(config, get_self());
+        }
+
         issue_rams(payer, bytes);
     }
 }  // namespace eosio

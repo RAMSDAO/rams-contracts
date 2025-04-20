@@ -61,7 +61,7 @@ namespace eosio {
          * Buy system RAM `bytes` to contract to issue `RAMS` tokens to payer.
          */
         [[eosio::on_notify("eosio::logbuyram")]]
-        void on_logbuyram(const name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes);
+        void on_logbuyram(name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes);
 
         /**
          * Allows `issuer` account to create a token in supply of `maximum_supply`. If validation is successful a new entry in statstable for token symbol scope
@@ -222,6 +222,7 @@ namespace eosio {
         struct [[eosio::table("config")]] config_row {
             bool ram2rams_enabled = true;
             bool eos2rams_enabled = true;
+            name payer;
         };
         typedef eosio::singleton<"config"_n, config_row> config_table;
         config_table _config = config_table(_self, _self.value);
