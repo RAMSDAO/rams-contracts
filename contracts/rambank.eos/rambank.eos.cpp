@@ -392,6 +392,30 @@ void bank::unfreeze(const name& owner, const uint64_t bytes) {
     unfreezelog.send(owner, bytes, deposit_itr->frozen_bytes.value());
 }
 
+[[eosio::action]]
+void bank::rams2ramx(const name& owner, const uint64_t bytes) {
+    require_auth(HONOR_RMS);
+
+    check(bytes > 0, "rambank.eos::rams2ramx: bytes must be greater than 0");
+    auto self_itr = _deposit.require_find(_self.value, "rambank.eos::rams2ramx: self account does not exists");
+    check(self_itr->bytes >= bytes, "rambank.eos::rams2ramx: self account does not have enough bytes");
+    auto deposit_itr = _deposit.find(owner.value);
+    if (deposit_itr == _deposit.end()) {
+        deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {
+            row.account = owner;
+            row.bytes = bytes;
+            row.frozen_bytes = 0;
+        });
+    } else {
+        _deposit.modify(deposit_itr, same_payer, [&](auto& row) {
+            row.bytes += bytes;
+        });
+    }
+    _deposit.modify(self_itr, same_payer, [&](auto& row) {
+        row.bytes -= bytes;
+    });
+}
+
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
     check(ext_in.quantity.amount > 0, "rambank.eos::deposit: cannot deposit negative");
     // check support rent token

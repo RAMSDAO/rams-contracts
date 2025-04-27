@@ -20,6 +20,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     const uint16_t RATIO_PRECISION = 10000;
 
     const name RAMX_EOS = "ramx.eos"_n;
+    const name HONOR_RMS = "honor.rms"_n;
 
     struct memo_schema {
         string action;
@@ -294,6 +295,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      */
     [[eosio::action]]
     void unfreeze(const name& owner, const uint64_t bytes);
+
+    /**
+     * Convert RAMS to RAMX action.
+     * - **authority**: `ramx.eos`
+     *
+     * @param owner - rams holding account.
+     * @param bytes - bytes of RAMS to convert.
+     *
+     */
+    [[eosio::action]]
+    void rams2ramx(const name& owner, const uint64_t bytes);
 
     // logs
     [[eosio::action]]
