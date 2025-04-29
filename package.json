@@ -6,10 +6,10 @@
   "license": "MIT",
   "repository": "https://github.com/RAMSEOS/rams-contracts.git",
   "contributors": [
-  
+
   ],
   "scripts": {
-    "build": "./build.sh",
+    "build": "cd tests && ./build.sh",
     "test": "jest --verbose"
   },
   "devDependencies": {
