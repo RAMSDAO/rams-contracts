@@ -559,16 +559,11 @@ void bank::update_reward(const time_point_sec& current_time, const uint64_t depo
 
 uint64_t bank::get_reward(const extended_symbol& token, const uint32_t time_elapsed) {
     uint64_t balance = get_balance(POOL_REWARD_CONTAINER, token);
-    uint128_t supply_per_second = (uint128_t)(balance)*PRECISION_FACTOR / 259200;  // 3 days
-    uint128_t rewards = supply_per_second * time_elapsed / PRECISION_FACTOR;
-    if (rewards > 0) {
-        if (rewards > balance) {
-            rewards = balance;
-        }
-        check(rewards <= asset::max_amount, "reward issued overflow");
-        token_transfer(POOL_REWARD_CONTAINER, get_self(), {static_cast<int64_t>(rewards), token}, "claim reward");
+    if (balance > 0) {
+        check(balance <= asset::max_amount, "reward issued overflow");
+        token_transfer(POOL_REWARD_CONTAINER, get_self(), {static_cast<int64_t>(balance), token}, "claim reward");
     }
-    return rewards;
+    return balance;
 }
 
 uint64_t bank::get_balance(const name& owner, const extended_symbol& token) {
