@@ -44,11 +44,11 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
 
     // on_ramstransfer: on ram transfer event
     [[eosio::on_notify("newrams.eos::transfer")]]
-    void on_ramstransfer(const name from, const name to, const asset quantity, const string memo);
+    void on_ramstransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
     // BTC transfer
     [[eosio::on_notify("btc.xsat::transfer")]]
-    void on_btctransfer(const name from, const name to, const asset quantity, const string memo);
+    void on_btctransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
     [[eosio::action]]
     void veteranlog(const name& from, const name& to, const asset quantity, const string memo, const uint64_t bytes) {
@@ -60,12 +60,14 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     void claim(const name& veteran);
 
     [[eosio::action]]
-    void claimlog(const name& caller, const name& veteran, const asset quantity);
+    void claimlog(const name& caller, const name& veteran, const asset& quantity){
+        require_auth(get_self());
+    };
 
     using veteranlog_action = eosio::action_wrapper<"veteranlog"_n, &honor::veteranlog>;
     using claimlog_action = eosio::action_wrapper<"claimlog"_n, &honor::claimlog>;
 
    private:
     veteran_index _veteran = veteran_index(_self, _self.value);
-    veteran_stat_table _veteran_stat = veteran_stat_table(_self, _self.value);
+    veteran_stat_table _state = veteran_stat_table(_self, _self.value);
 };

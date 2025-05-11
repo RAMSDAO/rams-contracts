@@ -1,7 +1,7 @@
 #include <honor.rms/honor.rms.hpp>
 
 [[eosio::on_notify("newrams.eos::transfer")]]
-void honor::on_ramstransfer(const name from, const name to, const asset quantity, const string memo) {
+void honor::on_ramstransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
     if (from == _self || to != _self) {
         return;
     }
@@ -29,14 +29,14 @@ void honor::on_ramstransfer(const name from, const name to, const asset quantity
     action(permission_level{_self, "active"_n}, RAM_BANK, "rams2ramx"_n, make_tuple(from, bytes)).send();
 
     // update veteran stat
-    auto stat_itr = _veteran_stat.get_or_default();
+    auto stat_itr = _state.get_or_default();
     if (is_new) {
         stat_itr.total_veterans++;
     }
     stat_itr.total_rams += quantity;
     stat_itr.total_bytes += bytes;
     stat_itr.last_update = current_time_point();
-    _veteran_stat.set(stat_itr, get_self());
+    _state.set(stat_itr, get_self());
 
     // log
     veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});
@@ -44,7 +44,7 @@ void honor::on_ramstransfer(const name from, const name to, const asset quantity
 }
 
 [[eosio::on_notify("btc.xsat::transfer")]]
-void honor::on_btctransfer(const name from, const name to, const asset quantity, const string memo) {
+void honor::on_btctransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
     if (from == _self || to != _self) {
         return;
     }
@@ -63,11 +63,11 @@ void honor::on_btctransfer(const name from, const name to, const asset quantity,
 
     // loop through all veterans
     auto itr = _veteran.begin();
-    auto last_itr = _veteran.rbegin()->first;
+    auto last_itr = _veteran.rbegin()->user;
     while (itr != _veteran.end()) {
 
         uint64_t distribute_amount;
-        if (itr == last_itr) {
+        if (itr->user == last_itr) {
 
             distribute_amount = remaining_amount;
         } else {
@@ -116,7 +116,7 @@ void honor::claim(const name& veteran) {
     _state.set(state, get_self());
 
     // transfer claimed amount to sender
-    action(permission_level{get_self(), "active"_n}, BTC_CONTRACT, "transfer"_n, make_tuple(get_self(), veteran, claimed_amount, "claim reward")).send();
+    action(permission_level{get_self(), "active"_n}, BTC_EOS, "transfer"_n, make_tuple(get_self(), veteran, claimed_amount, "claim reward")).send();
 
     // log
     claimlog_action claimlog(get_self(), {get_self(), "active"_n});
