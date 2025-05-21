@@ -54,8 +54,8 @@ namespace eosio {
         /**
          * Send EOS token to contract to issue `RAMS` tokens to sender.
          */
-        [[eosio::on_notify("eosio.token::transfer")]]
-        void on_eostransfer(const name from, const name to, const asset quantity, const string memo);
+        [[eosio::on_notify("core.vaulta::transfer")]]
+        void on_atransfer(const name from, const name to, const asset quantity, const string memo);
 
         /**
          * Buy system RAM `bytes` to contract to issue `RAMS` tokens to payer.

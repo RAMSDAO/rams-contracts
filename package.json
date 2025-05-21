@@ -5,17 +5,16 @@
   "description": "rams contract",
   "license": "MIT",
   "repository": "https://github.com/RAMSEOS/rams-contracts.git",
-  "contributors": [
-  
-  ],
+  "contributors": [],
   "scripts": {
     "build": "./build.sh",
-    "test": "jest --verbose"
+    "test": "jest --verbose",
+    "test:honor": "jest --verbose tests/honor.spec.ts"
   },
   "devDependencies": {
-    "@proton/vert": "^0.3.10",
+    "@proton/vert": "^0.3.24",
     "@types/chai": "^4.3.1",
-    "@types/jest": "^28.1.1",
+    "@types/jest": "^28.1.8",
     "jest": "^28.1.0",
     "ts-jest": "^28.0.4",
     "typescript": "^4.7.3"

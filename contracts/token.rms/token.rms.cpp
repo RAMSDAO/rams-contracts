@@ -38,8 +38,8 @@ namespace eosio {
         issue_rams(from, bytes);
     }
 
-    [[eosio::on_notify("eosio.token::transfer")]]
-    void token::on_eostransfer(const name from, const name to, const asset quantity, const string memo) {
+    [[eosio::on_notify("core.vaulta::transfer")]]
+    void token::on_atransfer(const name from, const name to, const asset quantity, const string memo) {
         if (from == _self || to != _self) {
             return;
         }
