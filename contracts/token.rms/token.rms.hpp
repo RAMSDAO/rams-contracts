@@ -3,6 +3,7 @@
 #include <eosio.system/eosio.system.hpp>
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
+#include <eosio/singleton.hpp>
 #include <string>
 using namespace eosio;
 using namespace std;
@@ -39,26 +40,26 @@ namespace eosio {
        public:
         using contract::contract;
 
-        const symbol RAMS_SYMBOL = symbol("RAMS", 0);
-        const name RAMS_BANK = "testramsbank"_n;  // todo
+        const symbol V_SYMBOL = symbol("V", 0);
+        const name V_BANK = "bank.rms"_n; 
 
         [[eosio::action]]
-        void setconfig(const bool ram2rams_enabled, const bool eos2rams_enabled);
+        void setconfig(const bool ram2v_enabled, const bool eos2v_enabled);
 
         /**
-         * Send system RAM `bytes` to contract to issue `RAMS` tokens to sender.
+         * Send system RAM `bytes` to contract to issue `V` tokens to sender.
          */
         [[eosio::on_notify("eosio::ramtransfer")]]
         void on_ramtransfer(const name from, const name to, const int64_t bytes, const string memo);
 
         /**
-         * Send EOS token to contract to issue `RAMS` tokens to sender.
+         * Send EOS token to contract to issue `V` tokens to sender.
          */
         [[eosio::on_notify("core.vaulta::transfer")]]
         void on_atransfer(const name from, const name to, const asset quantity, const string memo);
 
         /**
-         * Buy system RAM `bytes` to contract to issue `RAMS` tokens to payer.
+         * Buy system RAM `bytes` to contract to issue `V` tokens to payer.
          */
         [[eosio::on_notify("eosio::logbuyram")]]
         void on_logbuyram(name& payer, const name& receiver, const asset& quantity, int64_t bytes, int64_t ram_bytes);
@@ -207,21 +208,21 @@ namespace eosio {
          *
          * ### params
          *
-         * - `{bool} ram2rams_enabled` - whether RAM to RAMS conversion is enabled
-         * - `{bool} eos2rams_enabled` - whether EOS to RAMS conversion is enabled
+         * - `{bool} ram2v_enabled` - whether RAM to V conversion is enabled
+         * - `{bool} eos2v_enabled` - whether EOS to V conversion is enabled
          *
          * ### example
          *
          * ```json
          * {
-         *     "ram2rams_enabled": true,
-         *     "eos2rams_enabled": true
+         *     "ram2v_enabled": true,
+         *     "eos2v_enabled": true
          * }
          * ```
          */
         struct [[eosio::table("config")]] config_row {
-            bool ram2rams_enabled = true;
-            bool eos2rams_enabled = true;
+            bool ram2v_enabled = true;
+            bool eos2v_enabled = true;
             name payer;
         };
         typedef eosio::singleton<"config"_n, config_row> config_table;
@@ -231,7 +232,7 @@ namespace eosio {
         void sub_balance(const name& owner, const asset& value);
         void add_balance(const name& owner, const asset& value, const name& ram_payer);
 
-        void issue_rams(const name to, const int64_t bytes);
+        void issue_v(const name to, const int64_t bytes);
         void transfer_ram(const int64_t bytes);
     };
 

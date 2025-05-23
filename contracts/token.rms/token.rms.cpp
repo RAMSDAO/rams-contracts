@@ -3,22 +3,22 @@
 #include <token.rms/token.rms.hpp>
 
 namespace eosio {
-    void token::issue_rams(const name to, const int64_t bytes) {
+    void token::issue_v(const name to, const int64_t bytes) {
         check(bytes > 0, "must transfer positive quantity");
         check(to != get_self(), "cannot issue ram to self");
-        const asset quantity{bytes, RAMS_SYMBOL};
+        const asset quantity{bytes, V_SYMBOL};
 
-        // ramtransfer to ramsbank
+        // ramtransfer to V bank
         eosiosystem::system_contract::ramtransfer_action ramtransfer_act{"eosio"_n, {get_self(), "active"_n}};
-        ramtransfer_act.send(get_self(), RAMS_BANK, bytes, "convert ram to rams");
+        ramtransfer_act.send(get_self(), V_BANK, bytes, "convert ram to V");
 
-        // issue rams
+        // issue V
         issue_action issue_act{get_self(), {get_self(), "active"_n}};
-        issue_act.send(get_self(), quantity, "convert ram to rams");
+        issue_act.send(get_self(), quantity, "convert ram to V");
 
-        // transfer RAMS tokens to user
+        // transfer V tokens to user
         transfer_action transfer_act{get_self(), {get_self(), "active"_n}};
-        transfer_act.send(get_self(), to, quantity, "convert ram to rams");
+        transfer_act.send(get_self(), to, quantity, "convert ram to V");
     }
 
     [[eosio::on_notify("eosio::ramtransfer")]]
@@ -33,9 +33,9 @@ namespace eosio {
 
         // check status
         config_row config = _config.get_or_default();
-        check(config.ram2rams_enabled, "ram to rams is currently disabled");
+        check(config.ram2v_enabled, "ram to V is currently disabled");
 
-        issue_rams(from, bytes);
+        issue_v(from, bytes);
     }
 
     [[eosio::on_notify("core.vaulta::transfer")]]
@@ -47,7 +47,7 @@ namespace eosio {
         check(quantity.amount > 0, "must transfer positive quantity");
         // check status
         config_row config = _config.get_or_default();
-        check(config.eos2rams_enabled, "eos to rams is currently disabled");
+        check(config.eos2v_enabled, "eos to V is currently disabled");
 
         // set eos payer for logbuyram notify
         config.payer = from;
@@ -71,6 +71,6 @@ namespace eosio {
             _config.set(config, get_self());
         }
 
-        issue_rams(payer, bytes);
+        issue_v(payer, bytes);
     }
 }  // namespace eosio

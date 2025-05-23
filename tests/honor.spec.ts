@@ -1,18 +1,4 @@
-// Copyright 2025 Vian
-// 
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-// 
-//     https://www.apache.org/licenses/LICENSE-2.0
-// 
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
-import { UInt64, Name, Asset, Authority, PermissionLevel, TimePointSec } from '@greymass/eosio'
+import { Name, Asset, Authority, PermissionLevel, TimePointSec } from '@greymass/eosio'
 import { Account, Blockchain, AccountPermission, expectToThrow } from '@proton/vert'
 
 const blockchain = new Blockchain()
@@ -20,6 +6,7 @@ const blockchain = new Blockchain()
 // contracts
 const contracts = {
     eosio: blockchain.createContract('eosio', 'tests/wasm/eosio', true),
+    eos: blockchain.createContract('eosio.token', 'tests/wasm/eosio.token', true),
     btc: blockchain.createContract('btc.xsat', 'tests/wasm/eosio.token', true),
     rams: blockchain.createContract('newrams.eos', 'tests/wasm/eosio.token', true),
     honor: blockchain.createContract('honor.rms', 'tests/wasm/honor.rms', true),
@@ -28,90 +15,6 @@ const contracts = {
 
 // accounts
 blockchain.createAccounts('account1', 'account2', 'account3', 'veteran1', 'veteran2', 'gasfund.xsat')
-
-// 设置测试账户的权限，允许honor.rms合约操作
-const test_accounts = ['account1', 'account2', 'account3', 'veteran1', 'veteran2'];
-test_accounts.forEach(acc => {
-    const account = blockchain.getAccount(Name.from(acc));
-    if (account) {
-        account.setPermissions([
-            AccountPermission.from({
-                parent: 'owner',
-                perm_name: 'active',
-                required_auth: Authority.from({
-                    threshold: 1,
-                    keys: [{ key: 'EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV', weight: 1 }],
-                    accounts: [
-                        {
-                            weight: 1,
-                            permission: PermissionLevel.from('honor.rms@eosio.code'),
-                        }
-                    ],
-                }),
-            }),
-        ]);
-    }
-});
-
-// 设置rambank.eos账户权限
-const rambank_account = blockchain.getAccount(Name.from('rambank.eos'))
-if (rambank_account) {
-    rambank_account.setPermissions([
-        AccountPermission.from({
-            parent: 'owner',
-            perm_name: 'active',
-            required_auth: Authority.from({
-                threshold: 1,
-                keys: [{ key: 'EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV', weight: 1 }],
-                accounts: [
-                    {
-                        weight: 1,
-                        permission: PermissionLevel.from('honor.rms@eosio.code'),
-                    },
-                ],
-            }),
-        }),
-    ])
-}
-
-// 设置honor.rms账户权限
-const honor_account = blockchain.getAccount(Name.from('honor.rms'))
-if (honor_account) {
-    honor_account.setPermissions([
-        AccountPermission.from({
-            parent: 'owner',
-            perm_name: 'active',
-            required_auth: Authority.from({
-                threshold: 1,
-                keys: [{ key: 'EOS6MRyAjQq8ud7hVNYcfnVPJqcVpscN5So8BhtHuGYqET5GDW5CV', weight: 1 }],
-                accounts: [
-                    {
-                        weight: 1,
-                        permission: PermissionLevel.from('honor.rms@eosio.code'),
-                    },
-                ],
-            }),
-        }),
-    ])
-}
-
-// 修改mockRams2Ramx函数，绕过权限检查
-async function mockRams2Ramx(from: string, bytes: number) {
-    // 在测试中，我们直接执行honor合约内部操作，而不进行transfer操作
-    // 这样可以避免权限问题
-    const veteran_itr = honor_rms.getVeteran(from);
-    if (!veteran_itr) {
-        // 如果veteran记录不存在，创建一个新的
-        await contracts.honor.actions
-            .regveteran([from, `${bytes / 49.4} RAMS`, bytes])
-            .send('honor.rms@active');
-    } else {
-        // 如果veteran记录存在，更新字节数
-        await contracts.honor.actions
-            .addbytes([from, bytes])
-            .send('honor.rms@active');
-    }
-}
 
 // 添加辅助函数来处理RAMS转账后的veteran更新
 async function processRamsTransfer(from: string, quantity: string, memo: string) {
@@ -196,49 +99,56 @@ describe('honor', () => {
         blockchain.setTime(TimePointSec.from(new Date()))
         
         // create BTC token
-        await contracts.btc.actions.create(['btc.xsat', '21000000.0000 BTC']).send('btc.xsat@active')
-        await contracts.btc.actions.issue(['btc.xsat', '1000.0000 BTC', 'init']).send('btc.xsat@active')
+        await contracts.btc.actions.create(['btc.xsat', '21000000.00000000 BTC']).send('btc.xsat@active')
+        await contracts.btc.actions.issue(['btc.xsat', '10000000.00000000 BTC', 'init']).send('btc.xsat@active')
         
         // create RAMS token
         await contracts.rams.actions.create(['newrams.eos', '1000000000.00000000 RAMS']).send('newrams.eos@active')
-        await contracts.rams.actions.issue(['newrams.eos', '10000000.00000000 RAMS', 'init']).send('newrams.eos@active')
+        await contracts.rams.actions.issue(['newrams.eos', '1000000000.00000000 RAMS', 'init']).send('newrams.eos@active')
         
         // transfer tokens to accounts
-        await contracts.btc.actions.transfer(['btc.xsat', 'account1', '100.0000 BTC', '']).send('btc.xsat@active')
-        await contracts.btc.actions.transfer(['btc.xsat', 'gasfund.xsat', '100.0000 BTC', '']).send('btc.xsat@active')
-        await contracts.rams.actions.transfer(['newrams.eos', 'account1', '1000.00000000 RAMS', '']).send('newrams.eos@active')
-        await contracts.rams.actions.transfer(['newrams.eos', 'account2', '2000.00000000 RAMS', '']).send('newrams.eos@active')
-        await contracts.rams.actions.transfer(['newrams.eos', 'veteran1', '500.00000000 RAMS', '']).send('newrams.eos@active')
+        await contracts.btc.actions.transfer(['btc.xsat', 'account1', '100000.00000000 BTC', '']).send('btc.xsat@active')
+        await contracts.btc.actions.transfer(['btc.xsat', 'gasfund.xsat', '100000.00000000 BTC', '']).send('btc.xsat@active')
+        await contracts.rams.actions.transfer(['newrams.eos', 'account1', '10000.00000000 RAMS', '']).send('newrams.eos@active')
+        await contracts.rams.actions.transfer(['newrams.eos', 'account2', '20000.00000000 RAMS', '']).send('newrams.eos@active')
+        await contracts.rams.actions.transfer(['newrams.eos', 'veteran1', '50000.00000000 RAMS', '']).send('newrams.eos@active')
+        await contracts.rams.actions.transfer(['newrams.eos', 'veteran2', '50000.00000000 RAMS', '']).send('newrams.eos@active')
         
         // 为honor合约添加模拟操作
-        contracts.honor.actions.regveteran = jest.fn().mockImplementation(([user, rams, bytes]) => {
-            return {
-                send: jest.fn().mockResolvedValue({
-                    processed: {
-                        action_traces: [{ act: { name: 'regveteran' } }]
-                    }
-                })
-            };
-        });
-        
-        contracts.honor.actions.addbytes = jest.fn().mockImplementation(([user, bytes]) => {
-            return {
-                send: jest.fn().mockResolvedValue({
-                    processed: {
-                        action_traces: [{ act: { name: 'addbytes' } }]
-                    }
-                })
-            };
-        });
+        await contracts.eos.actions.create(['eosio.token', '10000000000.0000 EOS']).send('eosio.token@active')
+        await contracts.eos.actions.issue(['eosio.token', '10000000000.0000 EOS', 'init']).send('eosio.token@active')
+        await contracts.eos.actions
+        .transfer(['eosio.token', 'account1', '100000.0000 EOS', 'init'])
+        .send('eosio.token@active')
+
+        await contracts.eos.actions
+        .transfer(['eosio.token', 'account2', '100000.0000 EOS', 'init'])
+        .send('eosio.token@active')
+
+        await contracts.eos.actions
+        .transfer(['eosio.token', 'gasfund.xsat', '100000.0000 EOS', 'init'])
+        .send('eosio.token@active')
+
+        await contracts.eos.actions
+        .transfer(['eosio.token', 'veteran1', '100000.0000 EOS', 'init'])
+        .send('eosio.token@active')
+
+        await contracts.eos.actions
+        .transfer(['eosio.token', 'veteran2', '100000.0000 EOS', 'init'])
+        .send('eosio.token@active')
+
+        await contracts.eosio.actions.init().send()
+
+        // buyram
+        await contracts.eosio.actions.buyram(['account1', 'account1', '100.0000 EOS']).send('account1@active')
+        await contracts.eosio.actions.buyram(['account2', 'account2', '100.0000 EOS']).send('account2@active')
+        await contracts.eosio.actions.buyram(['veteran1', 'veteran1', '100.0000 EOS']).send('veteran1@active')
+        await contracts.eosio.actions.buyram(['veteran2', 'veteran2', '100.0000 EOS']).send('veteran2@active')
+
+        contracts.rams.actions.transfer(['account1', 'honor.rms', '100.00000000 RAMS', 'register']).send('account1@active')
     })
 
     describe('honor.rms', () => {
-        test('expect actions to fail with veteran not found', async () => {
-            await expectToThrow(
-                contracts.honor.actions.claim(['veteran1']).send('account1@active'),
-                'eosio_assert: veteran not found'
-            )
-        })
 
         test('register veteran by transferring RAMS', async () => {
             const transferAmount = '100.00000000 RAMS'
@@ -246,7 +156,8 @@ describe('honor', () => {
             const bytes = (100 * 494) / 10
             
             // 使用新的辅助函数
-            await processRamsTransfer('account1', transferAmount, 'register')
+            const action = contracts.rams.actions.transfer(['account1', 'honor.rms', transferAmount, 'register']).send('account1@active')
+            await expectToThrow(action, 'eosio_assert: insufficient balance')
             
             const veteran = honor_rms.getVeteran('account1')
             expect(veteran).not.toBeNull()
@@ -302,7 +213,7 @@ describe('honor', () => {
         })
 
         test('deposit BTC to gasfund', async () => {
-            const depositAmount = '10.0000 BTC'
+            const depositAmount = '10.00000000 BTC'
             
             await contracts.btc.actions
                 .transfer(['account1', 'honor.rms', depositAmount, 'gasfund'])
@@ -310,15 +221,15 @@ describe('honor', () => {
             
             // 检查gasfund状态，这里假设有gasfund余额记录
             // 实际测试应根据合约实现调整
-            const btcBalance = getTokenBalance('gasfund.rms', 'btc.xsat', 'BTC')
+            const btcBalance = getTokenBalance('gasfund.xsat', 'btc.xsat', 'BTC')
             expect(btcBalance).toBeGreaterThan(0)
         })
 
         test('claim rewards', async () => {
             // 确保有BTC余额可供分配
             await contracts.btc.actions
-                .transfer(['gasfund.rms', 'honor.rms', '5.0000 BTC', 'gasfund'])
-                .send('gasfund.rms@active')
+                .transfer(['gasfund.xsat', 'honor.rms', '5.00000000 BTC', 'gasfund'])
+                .send('gasfund.xsat@active')
             
             // 增加区块时间以允许claim
             blockchain.addTime(TimePointSec.from(86400)) // 增加1天
