@@ -17,6 +17,8 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
             row.user = from;
             row.rams = quantity;
             row.bytes = bytes;
+            row.unclaimed = asset(0, BTC_SYMBOL);
+            row.claimed = asset(0, BTC_SYMBOL);
         });
     } else {
         _veteran.modify(itr, same_payer, [&](auto& row) {

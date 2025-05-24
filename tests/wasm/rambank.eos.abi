@@ -208,11 +208,35 @@
             ]
         },
         {
+            "name": "impdeposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deposits",
+                    "type": "deposit_row[]"
+                }
+            ]
+        },
+        {
             "name": "maxdeposit",
             "base": "",
             "fields": [
                 {
                     "name": "max_deposit_limit",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "rams2ramx",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
                     "type": "uint64"
                 }
             ]
@@ -596,8 +620,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "impdeposit",
+            "type": "impdeposit",
+            "ricardian_contract": ""
+        },
+        {
             "name": "maxdeposit",
             "type": "maxdeposit",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rams2ramx",
+            "type": "rams2ramx",
             "ricardian_contract": ""
         },
         {
