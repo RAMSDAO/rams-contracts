@@ -371,8 +371,24 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     [[eosio::on_notify("eosio::ramtransfer")]]
     void on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo);
-    
+
 #ifdef DEBUG
+    [[eosio::action]]
+    void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
+        require_auth(get_self());
+        const uint64_t rows_to_clear = (!max_rows || *max_rows == 0) ? -1 : *max_rows;
+        const uint64_t value = scope ? scope->value : get_self().value;
+
+        if (table_name == "deposits"_n) {
+            auto itr = _deposit.begin();
+            while (itr != _deposit.end()) {
+                itr = _deposit.erase(itr);
+            }
+        } else {
+            check(false, "rambank.eos::cleartable: [table_name] unknown table to clear");
+        }
+    }
+
     [[eosio::action]]
     void impdeposit(const vector<deposit_row>& deposits) {
         require_auth(get_self());

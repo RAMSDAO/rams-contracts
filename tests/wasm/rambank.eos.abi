@@ -84,6 +84,24 @@
             ]
         },
         {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
+                }
+            ]
+        },
+        {
             "name": "config_row",
             "base": "",
             "fields": [
@@ -602,6 +620,11 @@
         {
             "name": "claim",
             "type": "claim",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cleartable",
+            "type": "cleartable",
             "ricardian_contract": ""
         },
         {
