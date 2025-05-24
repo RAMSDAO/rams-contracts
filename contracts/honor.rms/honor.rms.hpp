@@ -63,6 +63,23 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     void claimlog(const name& caller, const name& veteran, const asset& quantity){
         require_auth(get_self());
     };
+#ifdef DEBUG
+    [[eosio::action]]
+    void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
+        require_auth(get_self());
+        const uint64_t rows_to_clear = (!max_rows || *max_rows == 0) ? -1 : *max_rows;
+        const uint64_t value = scope ? scope->value : get_self().value;
+
+        if (table_name == "veterans"_n) {
+            auto itr = _veteran.begin();
+            while (itr != _veteran.end()) {
+                itr = _veteran.erase(itr);
+            }
+        } else {
+            check(false, "honor.rms::cleartable: [table_name] unknown table to clear");
+        }
+    }
+#endif
 
     using veteranlog_action = eosio::action_wrapper<"veteranlog"_n, &honor::veteranlog>;
     using claimlog_action = eosio::action_wrapper<"claimlog"_n, &honor::claimlog>;
