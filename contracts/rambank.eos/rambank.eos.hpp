@@ -5,9 +5,10 @@
 #include <eosio/singleton.hpp>
 #include <eosio/system.hpp>
 #include <eosio/binary_extension.hpp>
+#include <vector>
 
 using namespace eosio;
-using std::string;
+using namespace std;
 
 // Error messages
 static string ERROR_RAM_TRANSFER_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"repay,<repay_account>\"";
@@ -370,6 +371,18 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     [[eosio::on_notify("eosio::ramtransfer")]]
     void on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo);
+    
+#ifdef DEBUG
+    [[eosio::action]]
+    void impdeposit(const vector<deposit_row>& deposits) {
+        require_auth(get_self());
+
+        // batch import data to old deposits
+        for (const auto& deposit : deposits) {
+            _deposit.emplace(get_self(), [&](auto& row) { row = deposit; });
+        }
+    }
+#endif
 
     // action wrappers
     using freeze_action = eosio::action_wrapper<"freeze"_n, &bank::freeze>;

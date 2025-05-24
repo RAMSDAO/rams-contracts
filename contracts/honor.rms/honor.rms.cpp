@@ -5,7 +5,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
     if (from == _self || to != _self) {
         return;
     }
-    require_auth(from);
     check(quantity.amount > 0, "must transfer positive quantity");
 
     uint64_t bytes = (quantity.amount * 494) / 10;
