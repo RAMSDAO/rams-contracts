@@ -16,7 +16,7 @@ const contracts = {
 // accounts
 blockchain.createAccounts('account1', 'account2', 'account3', 'veteran1', 'veteran2', 'gasfund.xsat', 'ramsdao.eos')
 
-// 添加辅助函数来处理RAMS转账后的veteran更新
+// add RAMS to veteran
 async function processRamsTransfer(from: string, quantity: string, memo: string) {
     
     await contracts.rams.actions
@@ -95,6 +95,9 @@ describe('honor', () => {
         // transfer tokens to accounts
         await contracts.btc.actions.transfer(['btc.xsat', 'account1', '100000.00000000 BTC', '']).send('btc.xsat@active')
         await contracts.btc.actions.transfer(['btc.xsat', 'gasfund.xsat', '100000.00000000 BTC', '']).send('btc.xsat@active')
+        await contracts.btc.actions.transfer(['btc.xsat', 'account1', '100000.00000000 BTC', '']).send('btc.xsat@active')
+        await contracts.btc.actions.transfer(['btc.xsat', 'account2', '100000.00000000 BTC', '']).send('btc.xsat@active')
+
         await contracts.rams.actions.transfer(['newrams.eos', 'account1', '10000 RAMS', '']).send('newrams.eos@active')
         await contracts.rams.actions.transfer(['newrams.eos', 'account2', '20000 RAMS', '']).send('newrams.eos@active')
         await contracts.rams.actions.transfer(['newrams.eos', 'veteran1', '50000 RAMS', '']).send('newrams.eos@active')
@@ -136,13 +139,9 @@ describe('honor', () => {
         await contracts.eosio.actions.buyram(['veteran1', 'veteran1', '100.0000 EOS']).send('veteran1@active')
         await contracts.eosio.actions.buyram(['veteran2', 'veteran2', '100.0000 EOS']).send('veteran2@active')
         await contracts.eosio.actions.buyram(['ramsdao.eos', 'ramsdao.eos', '100.0000 EOS']).send('ramsdao.eos@active')
-        // 初始化rambank.eos合约
 
-        // 为 honor.rms 合约添加 eosio.code 权限
         const honorAccount = blockchain.getAccount(Name.from('honor.rms'))
         if (honorAccount) {
-            console.log('init honor.rms eosio.code permission')
-            // 获取当前 active 权限的密钥（如果存在）
             const currentActiveAuth = honorAccount.permissions[0].required_auth || {
                 threshold: 1,
                 keys: [],
@@ -155,146 +154,172 @@ describe('honor', () => {
                     perm_name: 'active',
                     required_auth: Authority.from({
                         threshold: 1,
-                        keys: currentActiveAuth.keys, // 保留现有密钥
+                        keys: currentActiveAuth.keys, 
                         accounts: [
-                            ...currentActiveAuth.accounts, // 保留现有账户权限
+                            ...currentActiveAuth.accounts, 
                             {
                                 weight: 1,
                                 permission: PermissionLevel.from('honor.rms@eosio.code'),
                             },
                         ],
-                        waits: currentActiveAuth.waits, // 保留等待时间（如果有）
+                        waits: currentActiveAuth.waits, 
                     }),
                 }),
             ])
 
         }
+
+        // import deposit data
+        await contracts.rambank.actions.impdeposit([[{
+            "account": "ramsdao.eos",
+            "bytes": "33031682107",
+            "frozen_bytes": 0
+          },{
+            "account": "ramseos.mlt",
+            "bytes": 8,
+            "frozen_bytes": 0
+          },
+          {
+            "account": "ramseosiomin",
+            "bytes": 1024,
+            "frozen_bytes": 0
+          },{
+            "account": "ramskeeprise",
+            "bytes": 39110211,
+            "frozen_bytes": 0
+          },{
+            "account": "ramsok.pink",
+            "bytes": 0,
+            "frozen_bytes": 0
+          },{
+            "account": "ramsss.pink",
+            "bytes": 0,
+            "frozen_bytes": 0
+          },{
+            "account": "ramsto222222",
+            "bytes": 28116,
+            "frozen_bytes": 0
+          },
+          {
+            "account": "ramsto333333",
+            "bytes": 106473,
+            "frozen_bytes": 0
+          },
+          {
+            "account": "ramsto444444",
+            "bytes": 3171145,
+            "frozen_bytes": 0
+          },
+          {
+            "account": "ramsto555555",
+            "bytes": 208624,
+            "frozen_bytes": 0
+          }
+          
+        ]]).send('rambank.eos@active')  
     })
 
     describe('honor.rms', () => {
 
         test('register veteran by transferring RAMS', async () => {
             const transferAmount = '100 RAMS'
-            // 计算RAMS转换为RAM字节的比例 (quantity.amount * 494) / 10
+            // calculate bytes
             const bytes = (100 * 494) / 10
             
-            // 使用新的辅助函数
-            await processRamsTransfer('account1', transferAmount, 'register')
+            await processRamsTransfer('veteran1', transferAmount, 'register')
             
-            const veteran = honor_rms.getVeteran('account1')
-            // expect(veteran).not.toBeNull()
-            // expect(veteran?.rams).toEqual(transferAmount)
-            // expect(veteran?.bytes).toEqual(bytes)
+            const veteran = honor_rms.getVeteran('veteran1')
+            expect(veteran).not.toBeNull()
+            expect(veteran?.rams).toEqual(transferAmount)
+            expect(veteran?.bytes).toEqual(bytes)
             
-            // const stats = honor_rms.getStat()
-            // expect(stats.total_veterans).toEqual(1)
-            // expect(stats.total_rams).toEqual(transferAmount)
-            // expect(stats.total_bytes).toEqual(bytes)
+            const stats = honor_rms.getStat()
+            expect(stats.total_veterans).toEqual(1)
+            expect(stats.total_rams).toEqual(transferAmount)
+            expect(stats.total_bytes).toEqual(bytes)
         })
 
-        // test('add RAMS to existing veteran', async () => {
-        //     const initialVeteran = honor_rms.getVeteran('account1')
-        //     const initialStats = honor_rms.getStat()
+        test('add RAMS to existing veteran', async () => {
+            const initialVeteran = honor_rms.getVeteran('veteran1')
+            const initialStats = honor_rms.getStat()
             
-        //     const additionalAmount = '50 RAMS'
-        //     const additionalBytes = (50 * 494) / 10 // 使用正确的比例
-            
-        //     // 使用新的辅助函数
-        //     await processRamsTransfer('account1', additionalAmount, 'add')
-            
-        //     const updatedVeteran = honor_rms.getVeteran('account1')
-        //     expect(updatedVeteran?.rams).toEqual('150 RAMS') // 100 + 50
-        //     expect(updatedVeteran?.bytes).toEqual((initialVeteran?.bytes || 0) + additionalBytes)
-            
-        //     const updatedStats = honor_rms.getStat()
-        //     expect(updatedStats.total_veterans).toEqual(initialStats.total_veterans) // 仍然是1
-        //     expect(updatedStats.total_rams).toEqual('150 RAMS') // 100 + 50
-        //     expect(updatedStats.total_bytes).toEqual(initialStats.total_bytes + additionalBytes)
-        // })
+            const additionalAmount = '100 RAMS'
+            const additionalBytes = (100 * 494) / 10
 
-        // test('register multiple veterans', async () => {
-        //     const vet1Amount = '200 RAMS'
-        //     const vet1Bytes = (200 * 494) / 10
+            await processRamsTransfer('veteran1', additionalAmount, 'add')
             
-        //     await processRamsTransfer('veteran1', vet1Amount, 'register')
+            const updatedVeteran = honor_rms.getVeteran('veteran1')
+            expect(updatedVeteran?.rams).toEqual('200 RAMS')
+            expect(updatedVeteran?.bytes).toEqual((initialVeteran?.bytes || 0) + additionalBytes)
             
-        //     const vet2Amount = '300.00000000 RAMS'
-        //     const vet2Bytes = (300 * 494) / 10
-            
-        //     await processRamsTransfer('account2', vet2Amount, 'register')
-            
-        //     const veteran1 = honor_rms.getVeteran('veteran1')
-        //     const veteran2 = honor_rms.getVeteran('account2')
-            
-        //     expect(veteran1).not.toBeNull()
-        //     expect(veteran2).not.toBeNull()
-            
-        //     const stats = honor_rms.getStat()
-        //     expect(stats.total_veterans).toEqual(3) // account1, veteran1, account2
-        //     expect(stats.total_rams).toEqual('650.00000000 RAMS') // 150 + 200 + 300
-        // })
+            const updatedStats = honor_rms.getStat()
+            expect(updatedStats.total_veterans).toEqual(initialStats.total_veterans)
+            expect(updatedStats.total_rams).toEqual('200 RAMS')
+            expect(updatedStats.total_bytes).toEqual(initialStats.total_bytes + additionalBytes)
+        })
 
-        // test('deposit BTC to gasfund', async () => {
-        //     const depositAmount = '10.00000000 BTC'
+        test('register multiple veterans', async () => {
+            const vet1Amount = '100 RAMS'
+            await processRamsTransfer('veteran1', vet1Amount, 'register')
             
-        //     await contracts.btc.actions
-        //         .transfer(['account1', 'honor.rms', depositAmount, 'gasfund'])
-        //         .send('account1@active')
+            const vet2Amount = '300 RAMS'
+            await processRamsTransfer('veteran2', vet2Amount, 'register')
             
-        //     // 检查gasfund状态，这里假设有gasfund余额记录
-        //     // 实际测试应根据合约实现调整
-        //     const btcBalance = getTokenBalance('gasfund.xsat', 'btc.xsat', 'BTC')
-        //     expect(btcBalance).toBeGreaterThan(0)
-        // })
+            const veteran1 = honor_rms.getVeteran('veteran1')
+            const veteran2 = honor_rms.getVeteran('veteran2')
+            
+            expect(veteran1).not.toBeNull()
+            expect(veteran2).not.toBeNull()
+            
+            const stats = honor_rms.getStat()
+            expect(stats.total_veterans).toEqual(2)
+            expect(stats.total_rams).toEqual('600 RAMS')
+        })
 
-        // test('claim rewards', async () => {
-        //     // 确保有BTC余额可供分配
-        //     await contracts.btc.actions
-        //         .transfer(['gasfund.xsat', 'honor.rms', '5.00000000 BTC', 'gasfund'])
-        //         .send('gasfund.xsat@active')
-            
-        //     // 增加区块时间以允许claim
-        //     blockchain.addTime(TimePointSec.from(86400)) // 增加1天
-            
-        //     const initialVeteran = honor_rms.getVeteran('account1')
-        //     const initialBtcBalance = getTokenBalance('account1', 'btc.xsat', 'BTC')
-            
-        //     // 执行claim操作
-        //     await contracts.honor.actions.claim(['account1']).send('account1@active')
-            
-        //     const updatedVeteran = honor_rms.getVeteran('account1')
-        //     const updatedBtcBalance = getTokenBalance('account1', 'btc.xsat', 'BTC')
-            
-        //     // 验证claim后的状态
-        //     expect(updatedVeteran?.unclaimed).toEqual('0.0000 BTC') // 索取后unclaimed应该为0
-        //     expect(Asset.from(updatedVeteran?.claimed || '0.0000 BTC').units.toNumber())
-        //         .toBeGreaterThan(Asset.from(initialVeteran?.claimed || '0.0000 BTC').units.toNumber())
-        //     expect(updatedBtcBalance).toBeGreaterThan(initialBtcBalance) // 账户BTC余额应增加
-            
-        //     // 更新last_claim_time
-        //     expect(updatedVeteran?.last_claim_time.toString()).toEqual(currentTime())
-        // })
+        test('deposit BTC to gasfund', async () => {
+            const depositAmount = '10.00000000 BTC'
+            const initialStats = honor_rms.getStat()
+            expect(Asset.from(initialStats.total_unclaimed).equals("0.00000000 BTC")).toBeTruthy()
 
-        // test('claim with no unclaimed amount fails', async () => {
-        //     await expectToThrow(
-        //         contracts.honor.actions.claim(['account1']).send('account1@active'),
-        //         'eosio_assert: no unclaimed amount'
-        //     )
-        // })
+            await contracts.btc.actions
+                .transfer(['account1', 'honor.rms', depositAmount, 'gasfund'])
+                .send('account1@active')
+            
+            const btcBalance = getTokenBalance('honor.rms', 'btc.xsat', 'BTC')
+            expect(btcBalance).toBeGreaterThan(0)
 
-        // test('convert RAMS to RAMX', async () => {
-        //     const initialRAMS = honor_rms.getVeteran('account1')?.rams
-        //     const convertAmount = '50 RAMS'
-        //     const convertBytes = (50 * 494) / 10
+            const updatedStats = honor_rms.getStat()
+            expect(Asset.from(updatedStats.total_unclaimed).equals("10.00000000 BTC")).toBeTruthy()
+
+            const veteran1 = honor_rms.getVeteran('veteran1')
+            const veteran2 = honor_rms.getVeteran('veteran2')
+            expect(Asset.from(veteran1?.unclaimed || '0.00000000 BTC').equals("5.00000000 BTC")).toBeTruthy()
+            expect(Asset.from(veteran2?.unclaimed || '0.00000000 BTC').equals("5.00000000 BTC")).toBeTruthy()
+        })
+
+        test('claim rewards', async () => {
+            blockchain.addTime(TimePointSec.from(86400))
             
-        //     await processRamsTransfer('account1', convertAmount, 'convert')
+            const initialBtcBalance = getTokenBalance('veteran1', 'btc.xsat', 'BTC')
             
-        //     const updatedVeteran = honor_rms.getVeteran('account1')
+            await contracts.honor.actions.claim(['veteran1']).send('veteran1@active')
             
-        //     // 验证RAMS增加
-        //     expect(Asset.from(updatedVeteran?.rams || '0 RAMS').units.toNumber())
-        //         .toBeGreaterThan(Asset.from(initialRAMS || '0 RAMS').units.toNumber())
-        // })
+            const updatedVeteran = honor_rms.getVeteran('veteran1')
+            const updatedBtcBalance = getTokenBalance('veteran1', 'btc.xsat', 'BTC')
+            
+            expect(updatedVeteran?.unclaimed).toEqual('0.00000000 BTC') 
+            expect(Asset.from(updatedVeteran?.claimed || '0.00000000 BTC').equals("5.00000000 BTC")).toBeTruthy()
+            expect(Asset.from(updatedVeteran?.unclaimed || '0.00000000 BTC').equals("0.00000000 BTC")).toBeTruthy()
+            expect(updatedBtcBalance).toEqual(initialBtcBalance + 500000000) 
+            
+            expect(updatedVeteran?.last_claim_time.toString()).toEqual(currentTime())
+        })
+        test('claim error', async () => {
+            await expectToThrow(
+                contracts.honor.actions.claim(['veteran1']).send('veteran1@active'),
+                'eosio_assert: no unclaimed amount'
+            )
+        })
     })
 })
 

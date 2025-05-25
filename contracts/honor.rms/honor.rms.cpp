@@ -1,4 +1,5 @@
 #include <honor.rms/honor.rms.hpp>
+#include <eosio.token/eosio.token.hpp>
 
 [[eosio::on_notify("newrams.eos::transfer")]]
 void honor::on_ramstransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -60,29 +61,27 @@ void honor::on_btctransfer(const name& from, const name& to, const asset& quanti
 
     // handle gas fund, distribute to all veterans
     auto state = _state.get_or_default();
-    auto remaining_amount = quantity.amount;
 
-    // loop through all veterans
-    auto itr = _veteran.begin();
-    auto last_itr = _veteran.rbegin()->user;
-    while (itr != _veteran.end()) {
+    check(state.total_bytes > 0, "total bytes must be positive");
+    check(state.total_veterans > 0, "no veterans found");
 
+    uint64_t total_amount = quantity.amount;
+    uint64_t distributed = 0;
+
+    for (auto itr = _veteran.begin(); itr != _veteran.end(); ++itr) {
         uint64_t distribute_amount;
-        if (itr->user == last_itr) {
-
-            distribute_amount = remaining_amount;
+        if (std::next(itr) == _veteran.end()) {
+            distribute_amount = total_amount - distributed;
         } else {
-
-            distribute_amount = itr->bytes / state.total_bytes * quantity.amount;
-            remaining_amount -= distribute_amount;
+            // 使用 uint128_t 来防止溢出
+            uint128_t temp = (uint128_t)itr->rams.amount * (uint128_t)total_amount;
+            distribute_amount = (uint64_t)(temp / (uint128_t)state.total_rams.amount);
+            distributed += distribute_amount;
         }
-
         // update veteran
         _veteran.modify(itr, same_payer, [&](auto& row) {
             row.unclaimed += asset(distribute_amount, quantity.symbol);
         });
-
-        itr++;
     }
 
     // update state
@@ -106,7 +105,8 @@ void honor::claim(const name& veteran) {
 
     auto sender = get_sender();
     auto claimed_amount = itr->unclaimed;
-    // update veteran
+
+    // // update veteran
     _veteran.modify(itr, same_payer, [&](auto& row) {
         row.claimed += claimed_amount;
         row.unclaimed = asset(0, row.unclaimed.symbol);
@@ -117,7 +117,8 @@ void honor::claim(const name& veteran) {
     _state.set(state, get_self());
 
     // transfer claimed amount to sender
-    action(permission_level{get_self(), "active"_n}, BTC_EOS, "transfer"_n, make_tuple(get_self(), veteran, claimed_amount, "claim reward")).send();
+    eosio::token::transfer_action transfer(BTC_EOS, {get_self(), "active"_n});
+    transfer.send(get_self(), veteran, claimed_amount, "claim reward");
 
     // log
     claimlog_action claimlog(get_self(), {get_self(), "active"_n});

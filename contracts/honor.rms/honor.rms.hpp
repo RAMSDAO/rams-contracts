@@ -57,7 +57,7 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
 
     // claim: claim the reward
     [[eosio::action]]
-    void claim(const name& veteran);
+    void claim(const name& account);
 
     [[eosio::action]]
     void claimlog(const name& caller, const name& veteran, const asset& quantity){
