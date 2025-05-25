@@ -44,7 +44,7 @@ namespace eosio {
         const name V_BANK = "bank.rms"_n; 
 
         [[eosio::action]]
-        void setconfig(const bool ram2v_enabled, const bool eos2v_enabled);
+        void setconfig(const bool ram2v_enabled, const bool a2v_enabled);
 
         /**
          * Send system RAM `bytes` to contract to issue `V` tokens to sender.
@@ -155,6 +155,17 @@ namespace eosio {
         [[eosio::action]]
         void close(const name& owner, const symbol& symbol);
 
+        // Log action
+        [[eosio::action]]
+        void a2vlog(const name& from, const asset& a_quantity, const int64_t bytes, const asset& v_quantity){
+            require_auth(get_self());
+        }
+
+        [[eosio::action]]
+        void ram2vlog(const name& from, const int64_t bytes, const asset& v_quantity){
+            require_auth(get_self());
+        }
+
         static asset get_supply(const name& token_contract_account, const symbol_code& sym_code) {
             stats statstable(token_contract_account, sym_code.raw());
             return statstable.get(sym_code.raw(), "invalid supply symbol code").supply;
@@ -183,6 +194,8 @@ namespace eosio {
         using close_action = eosio::action_wrapper<"close"_n, &token::close>;
         using issuefixed_action = eosio::action_wrapper<"issuefixed"_n, &token::issuefixed>;
         using setmaxsupply_action = eosio::action_wrapper<"setmaxsupply"_n, &token::setmaxsupply>;
+        using a2vlog_action = eosio::action_wrapper<"a2vlog"_n, &token::a2vlog>;
+        using ram2vlog_action = eosio::action_wrapper<"ram2vlog"_n, &token::ram2vlog>;
 
         struct [[eosio::table]] account {
             asset balance;
@@ -222,7 +235,7 @@ namespace eosio {
          */
         struct [[eosio::table("config")]] config_row {
             bool ram2v_enabled = true;
-            bool eos2v_enabled = true;
+            bool a2v_enabled = true;
             name payer;
         };
         typedef eosio::singleton<"config"_n, config_row> config_table;

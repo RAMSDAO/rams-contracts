@@ -5,14 +5,16 @@ cdt-cpp ../contracts/newrams.eos/newrams.eos.cpp -I../contracts --abigen_output 
 cdt-cpp ../contracts/swaprams.eos/swaprams.eos.cpp -I../contracts --abigen_output wasm/swaprams.eos.abi -o wasm/swaprams.eos.wasm --contract=ramstge.eos
 cdt-cpp ../contracts/rambank.eos/rambank.eos.cpp -I../contracts -I../contracts/internal -I../external --abigen_output wasm/rambank.eos.abi -o wasm/rambank.eos.wasm
 cdt-cpp ../contracts/ramx.eos/ramx.eos.cpp -I../contracts -I../contracts/internal -I../external --abigen_output wasm/ramx.eos.abi -o wasm/ramx.eos.wasm
-cdt-cpp ../contracts/token.rms/token.rms.cpp -I ../contracts -I ../external --abigen -o token.rms.wasm
+cdt-cpp ../contracts/token.rms/token.rms.cpp -I ../contracts -I ../external --abigen_output wasm/token.rms.abi -o wasm/token.rms.wasm
+cdt-cpp ../contracts/honor.rms/honor.rms.cpp -I ../contracts -I ../external -I ../contracts/internal --abigen_output wasm/honor.rms.abi -o wasm/honor.rms.wasm
 
 cleos set contract rams.eos wasm rams.eos.wasm rams.eos.abi
 cleos set contract newrams.eos wasm newrams.eos.wasm newrams.eos.abi
 cleos set contract ramstge.eos wasm swaprams.eos.wasm swaprams.eos.abi
 cleos set contract rambank.eos wasm rambank.eos.wasm rambank.eos.abi
 cleos set contract ramx.eos wasm ramx.eos.wasm ramx.eos.abi
-
+cleos set contract token.rms wasm token.rms.wasm token.rms.abi
+cleos set contract honor.rms wasm honor.rms.wasm honor.rms.abi
 cleos push action newrams.eos create '["ramstge.eos", "1000000000 RAMS"]' -p newrams.eos
 cleos push action ramstge.eos init '[false]' -p ramstge.eos 
 cleos set account permission newrams.eos active '{

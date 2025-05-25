@@ -29,13 +29,16 @@ namespace eosio {
         }
         if (memo == "ignore") {
             return;
-        }  // allow for internal RAM transfers
+        }  // allow for internal RAM transferszhe
 
         // check status
         config_row config = _config.get_or_default();
         check(config.ram2v_enabled, "ram to V is currently disabled");
 
         issue_v(from, bytes);
+
+        ram2vlog_action ram2vlog_act{get_self(), {get_self(), "active"_n}};
+        ram2vlog_act.send(from, bytes, asset{bytes, V_SYMBOL});
     }
 
     [[eosio::on_notify("core.vaulta::transfer")]]
@@ -43,16 +46,15 @@ namespace eosio {
         if (from == _self || to != _self) {
             return;
         }
-        require_auth(from);
         check(quantity.amount > 0, "must transfer positive quantity");
         // check status
         config_row config = _config.get_or_default();
-        check(config.eos2v_enabled, "eos to V is currently disabled");
+        check(config.a2v_enabled, "A to V is currently disabled");
 
         // set eos payer for logbuyram notify
         config.payer = from;
         _config.set(config, get_self());
-        action(permission_level{_self, "active"_n}, "eosio"_n, "buyram"_n, make_tuple(_self, _self, quantity)).send();
+        action(permission_level{_self, "active"_n}, "core.vaulta"_n, "buyram"_n, make_tuple(_self, _self, quantity)).send();
     }
 
     [[eosio::on_notify("eosio::logbuyram")]]
@@ -72,5 +74,8 @@ namespace eosio {
         }
 
         issue_v(payer, bytes);
+
+        a2vlog_action a2vlog_act{get_self(), {get_self(), "active"_n}};
+        a2vlog_act.send(payer, quantity, bytes, asset{bytes, V_SYMBOL});
     }
 }  // namespace eosio

@@ -4,6 +4,28 @@
     "types": [],
     "structs": [
         {
+            "name": "a2vlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "a_quantity",
+                    "type": "asset"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "v_quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
             "name": "account",
             "base": "",
             "fields": [
@@ -36,7 +58,7 @@
                     "type": "bool"
                 },
                 {
-                    "name": "eos2v_enabled",
+                    "name": "a2v_enabled",
                     "type": "bool"
                 },
                 {
@@ -132,6 +154,24 @@
             ]
         },
         {
+            "name": "ram2vlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "v_quantity",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
             "name": "retire",
             "base": "",
             "fields": [
@@ -154,7 +194,7 @@
                     "type": "bool"
                 },
                 {
-                    "name": "eos2v_enabled",
+                    "name": "a2v_enabled",
                     "type": "bool"
                 }
             ]
@@ -198,6 +238,11 @@
     ],
     "actions": [
         {
+            "name": "a2vlog",
+            "type": "a2vlog",
+            "ricardian_contract": ""
+        },
+        {
             "name": "close",
             "type": "close",
             "ricardian_contract": ""
@@ -220,6 +265,11 @@
         {
             "name": "open",
             "type": "open",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "ram2vlog",
+            "type": "ram2vlog",
             "ricardian_contract": ""
         },
         {
