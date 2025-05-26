@@ -24,8 +24,12 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
         uint64_t bytes;
         time_point_sec last_claim_time;
         uint64_t primary_key() const { return user.value; }
+        uint64_t by_bytes() const { return bytes; }
     };
-    typedef eosio::multi_index<"veterans"_n, veteran_row> veteran_index;
+    typedef eosio::multi_index<
+        "veterans"_n, veteran_row,
+        indexed_by<"bybytes"_n, const_mem_fun<veteran_row, uint64_t, &veteran_row::by_bytes>>>
+        veteran_index;
 
     // stat
     // total_rams: total rams of all veterans

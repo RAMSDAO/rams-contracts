@@ -68,18 +68,25 @@ void honor::on_btctransfer(const name& from, const name& to, const asset& quanti
     uint64_t total_amount = quantity.amount;
     uint64_t distributed = 0;
 
-    for (auto itr = _veteran.begin(); itr != _veteran.end(); ++itr) {
+    // Use bytes index to distribute, sort by bytes desc
+    auto bytes_idx = _veteran.get_index<"bybytes"_n>();
+    
+    // Iterate from highest bytes to lowest (reverse order)
+    for (auto itr = bytes_idx.rbegin(); itr != bytes_idx.rend(); ++itr) {
         uint64_t distribute_amount;
-        if (std::next(itr) == _veteran.end()) {
+        
+        // For the last veteran, give remaining amount to avoid rounding errors
+        if (std::next(itr) == bytes_idx.rend()) {
             distribute_amount = total_amount - distributed;
         } else {
-            // 使用 uint128_t 来防止溢出
-            uint128_t temp = (uint128_t)itr->rams.amount * (uint128_t)total_amount;
-            distribute_amount = (uint64_t)(temp / (uint128_t)state.total_rams.amount);
+            // Calculate distribute amount based on bytes proportion
+            uint128_t temp = (uint128_t)itr->bytes * (uint128_t)total_amount;
+            distribute_amount = (uint64_t)(temp / (uint128_t)state.total_bytes);
             distributed += distribute_amount;
         }
-        // update veteran
-        _veteran.modify(itr, same_payer, [&](auto& row) {
+        
+        // Update veteran
+        bytes_idx.modify(itr, same_payer, [&](auto& row) {
             row.unclaimed += asset(distribute_amount, quantity.symbol);
         });
     }
@@ -117,7 +124,7 @@ void honor::claim(const name& veteran) {
     _state.set(state, get_self());
 
     // transfer claimed amount to sender
-    eosio::token::transfer_action transfer(BTC_EOS, {get_self(), "active"_n});
+    eosio::token::transfer_action transfer(BTC_XSAT, {get_self(), "active"_n});
     transfer.send(get_self(), veteran, claimed_amount, "claim reward");
 
     // log
