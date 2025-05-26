@@ -29,7 +29,7 @@ namespace eosio {
         }
         if (memo == "ignore") {
             return;
-        }  // allow for internal RAM transferszhe
+        }  // allow for internal RAM transfers
 
         // check status
         config_row config = _config.get_or_default();
