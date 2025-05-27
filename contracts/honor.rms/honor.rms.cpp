@@ -86,7 +86,8 @@ void honor::on_btctransfer(const name& from, const name& to, const asset& quanti
         }
         
         // Update veteran
-        bytes_idx.modify(itr, same_payer, [&](auto& row) {
+        auto veteran_itr = _veteran.find(itr->user.value);
+        _veteran.modify(veteran_itr, same_payer, [&](auto& row) {
             row.unclaimed += asset(distribute_amount, quantity.symbol);
         });
     }
