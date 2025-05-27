@@ -15,8 +15,9 @@ cleos set contract rambank.eos wasm rambank.eos.wasm rambank.eos.abi
 cleos set contract ramx.eos wasm ramx.eos.wasm ramx.eos.abi
 cleos set contract token.rms wasm token.rms.wasm token.rms.abi
 cleos set contract honor.rms wasm honor.rms.wasm honor.rms.abi
+
 cleos push action newrams.eos create '["ramstge.eos", "1000000000 RAMS"]' -p newrams.eos
-cleos push action ramstge.eos init '[false]' -p ramstge.eos 
+cleos push action ramstge.eos init '[false]' -p ramstge.eos
 cleos set account permission newrams.eos active '{
     "threshold": 1,
     "accounts": [
@@ -56,8 +57,8 @@ cleos set account permission stramreward1 active '{
     ]
 }' -p stramreward1@active;
 
-cleos push action ramx.eos feeconfig '["ramsdao.eos", "200"]' -p ramx.eos 
-cleos push action ramx.eos tradeconfig '["0.1000 EOS", 1000]' -p ramx.eos 
+cleos push action ramx.eos feeconfig '["ramsdao.eos", "200"]' -p ramx.eos
+cleos push action ramx.eos tradeconfig '["0.1000 EOS", 1000]' -p ramx.eos
 
 cleos set account permission ramx.eos active '{
     "threshold": 1,
