@@ -84,6 +84,24 @@
             ]
         },
         {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
+                }
+            ]
+        },
+        {
             "name": "config_row",
             "base": "",
             "fields": [
@@ -204,6 +222,16 @@
                 {
                     "name": "freezed_bytes",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "impdeposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deposits",
+                    "type": "deposit_row[]"
                 }
             ]
         },
@@ -595,6 +623,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "cleartable",
+            "type": "cleartable",
+            "ricardian_contract": ""
+        },
+        {
             "name": "depositlog",
             "type": "depositlog",
             "ricardian_contract": ""
@@ -607,6 +640,11 @@
         {
             "name": "freezelog",
             "type": "freezelog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "impdeposit",
+            "type": "impdeposit",
             "ricardian_contract": ""
         },
         {
