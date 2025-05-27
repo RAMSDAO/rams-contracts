@@ -84,6 +84,10 @@ void honor::on_btctransfer(const name& from, const name& to, const asset& quanti
             distribute_amount = (uint64_t)(temp / (uint128_t)state.total_bytes);
             distributed += distribute_amount;
         }
+
+        if (distribute_amount == 0) {
+            break;
+        }
         
         // Update veteran
         auto veteran_itr = _veteran.find(itr->user.value);
