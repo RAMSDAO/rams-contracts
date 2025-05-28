@@ -7,3 +7,5 @@ nodeos
 !external/**/*.wasm
 !external/**/*.abi
 .clangd
+.idea
+wasm

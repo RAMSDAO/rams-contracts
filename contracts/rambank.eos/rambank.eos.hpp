@@ -5,9 +5,10 @@
 #include <eosio/singleton.hpp>
 #include <eosio/system.hpp>
 #include <eosio/binary_extension.hpp>
+#include <vector>
 
 using namespace eosio;
-using std::string;
+using namespace std;
 
 // Error messages
 static string ERROR_RAM_TRANSFER_INVALID_MEMO = "rambank.eos: invalid memo (ex: \"repay,<repay_account>\"";
@@ -20,6 +21,8 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     const uint16_t RATIO_PRECISION = 10000;
 
     const name RAMX_EOS = "ramx.eos"_n;
+    const name HONOR_RMS = "honor.rms"_n;
+    const name RAMS_DAO = "ramsdao.eos"_n;
 
     struct memo_schema {
         string action;
@@ -295,6 +298,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     [[eosio::action]]
     void unfreeze(const name& owner, const uint64_t bytes);
 
+    /**
+     * Convert RAMS to RAMX action.
+     * - **authority**: `ramx.eos`
+     *
+     * @param owner - rams holding account.
+     * @param bytes - bytes of RAMS to convert.
+     *
+     */
+    [[eosio::action]]
+    void rams2ramx(const name& owner, const uint64_t bytes);
+
     // logs
     [[eosio::action]]
     void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token) {
@@ -357,6 +371,34 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     [[eosio::on_notify("eosio::ramtransfer")]]
     void on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo);
+
+#ifdef DEBUG
+    [[eosio::action]]
+    void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
+        require_auth(get_self());
+        const uint64_t rows_to_clear = (!max_rows || *max_rows == 0) ? -1 : *max_rows;
+        const uint64_t value = scope ? scope->value : get_self().value;
+
+        if (table_name == "deposits"_n) {
+            auto itr = _deposit.begin();
+            while (itr != _deposit.end()) {
+                itr = _deposit.erase(itr);
+            }
+        } else {
+            check(false, "rambank.eos::cleartable: [table_name] unknown table to clear");
+        }
+    }
+
+    [[eosio::action]]
+    void impdeposit(const vector<deposit_row>& deposits) {
+        require_auth(get_self());
+
+        // batch import data to old deposits
+        for (const auto& deposit : deposits) {
+            _deposit.emplace(get_self(), [&](auto& row) { row = deposit; });
+        }
+    }
+#endif
 
     // action wrappers
     using freeze_action = eosio::action_wrapper<"freeze"_n, &bank::freeze>;

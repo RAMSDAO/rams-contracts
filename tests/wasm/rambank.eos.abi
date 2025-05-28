@@ -84,6 +84,24 @@
             ]
         },
         {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
+                }
+            ]
+        },
+        {
             "name": "config_row",
             "base": "",
             "fields": [
@@ -208,11 +226,35 @@
             ]
         },
         {
+            "name": "impdeposit",
+            "base": "",
+            "fields": [
+                {
+                    "name": "deposits",
+                    "type": "deposit_row[]"
+                }
+            ]
+        },
+        {
             "name": "maxdeposit",
             "base": "",
             "fields": [
                 {
                     "name": "max_deposit_limit",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "rams2ramx",
+            "base": "",
+            "fields": [
+                {
+                    "name": "owner",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
                     "type": "uint64"
                 }
             ]
@@ -581,6 +623,11 @@
             "ricardian_contract": ""
         },
         {
+            "name": "cleartable",
+            "type": "cleartable",
+            "ricardian_contract": ""
+        },
+        {
             "name": "depositlog",
             "type": "depositlog",
             "ricardian_contract": ""
@@ -596,8 +643,18 @@
             "ricardian_contract": ""
         },
         {
+            "name": "impdeposit",
+            "type": "impdeposit",
+            "ricardian_contract": ""
+        },
+        {
             "name": "maxdeposit",
             "type": "maxdeposit",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rams2ramx",
+            "type": "rams2ramx",
             "ricardian_contract": ""
         },
         {

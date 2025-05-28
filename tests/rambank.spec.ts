@@ -226,10 +226,8 @@ namespace rambank_eos {
             reward.token.contract,
             Asset.Symbol.from(reward.token.sym).code.toString()
         )
-        // reward_per_second
-        const reward_per_second = Math.trunc((balance * PRECISION_FACTOR) / 259200)
         // reward_amount
-        const reward_amount = Math.min(balance, Math.trunc((time_elapsed * reward_per_second) / PRECISION_FACTOR))
+        const reward_amount = balance
         // increment acc_per_token
         const total_supply = getStat().deposited_bytes
         const incr_acc_per_token = Math.trunc((reward_amount * PRECISION_FACTOR) / total_supply)
