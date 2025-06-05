@@ -89,25 +89,6 @@ namespace eosio {
         void issue(const name& to, const asset& quantity, const string& memo);
 
         /**
-         * Issues only the necessary tokens to bridge the gap between the current supply and the targeted total.
-         *
-         * @param to - the account to issue tokens to, it must be the same as the issuer,
-         * @param supply - the target total supply for the token.
-         * @param memo - the memo string that accompanies the token issue transaction.
-         */
-        [[eosio::action]]
-        void issuefixed(const name& to, const asset& supply, const string& memo);
-
-        /**
-         * Set the maximum supply of the token.
-         *
-         * @param issuer - the issuer account setting the maximum supply.
-         * @param maximum_supply - the maximum supply of the token.
-         */
-        [[eosio::action]]
-        void setmaxsupply(const name& issuer, const asset& maximum_supply);
-
-        /**
          * The opposite for create action, if all validations succeed,
          * it debits the statstable.supply amount.
          *
@@ -192,8 +173,6 @@ namespace eosio {
         using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
         using open_action = eosio::action_wrapper<"open"_n, &token::open>;
         using close_action = eosio::action_wrapper<"close"_n, &token::close>;
-        using issuefixed_action = eosio::action_wrapper<"issuefixed"_n, &token::issuefixed>;
-        using setmaxsupply_action = eosio::action_wrapper<"setmaxsupply"_n, &token::setmaxsupply>;
         using a2vlog_action = eosio::action_wrapper<"a2vlog"_n, &token::a2vlog>;
         using ram2vlog_action = eosio::action_wrapper<"ram2vlog"_n, &token::ram2vlog>;
 

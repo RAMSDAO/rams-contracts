@@ -287,24 +287,6 @@ describe('token.rms', () => {
             expect(balance).toEqual(0)
         })
 
-        test('issuefixed - issue to reach target supply', async () => {
-            const currentSupply = getSupply('token.rms', 'V')
-            const targetSupply = '5000 V'
-            
-            await contracts.token.actions.issuefixed(['token.rms', targetSupply, 'fixed issue']).send('token.rms@active')
-            
-            const newSupply = getSupply('token.rms', 'V')
-            expect(newSupply).toEqual(5000)
-        })
-
-        test('setmaxsupply - update maximum supply', async () => {
-            const newMaxSupply = '2000000000 V'
-            
-            await contracts.token.actions.setmaxsupply(['token.rms', newMaxSupply]).send('token.rms@active')
-            
-            const stat = token_rms.getStat('V')
-            expect(stat?.max_supply).toEqual(newMaxSupply)
-        })
     })
 
     describe('error cases', () => {
