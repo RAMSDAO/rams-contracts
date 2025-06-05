@@ -122,7 +122,7 @@ void bank::borrow(const uint64_t bytes, const name& account) {
             row.bytes += bytes;
         });
     } else {
-        _borrow.emplace(get_self(), [&](auto& row) {
+        borrow_itr = _borrow.emplace(get_self(), [&](auto& row) {
             row.account = account;
             row.bytes = bytes;
         });
