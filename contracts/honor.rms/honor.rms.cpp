@@ -113,7 +113,7 @@ void honor::claim(const name& veteran) {
 
     // update state
     auto state = _state.get_or_default();
-    check(state.total_unclaimed.amount > itr->unclaimed.amount, "no enough unclaimed amount");
+    check(state.total_unclaimed.amount >= itr->unclaimed.amount, "no enough unclaimed amount");
 
     auto sender = get_sender();
     auto claimed_amount = itr->unclaimed;
