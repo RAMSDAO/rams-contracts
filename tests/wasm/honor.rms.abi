@@ -50,6 +50,44 @@
             ]
         },
         {
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_convert",
+                    "type": "bool"
+                },
+                {
+                    "name": "disabled_veteran",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "impvtstat",
+            "base": "",
+            "fields": [
+                {
+                    "name": "veteran_stat",
+                    "type": "veteran_stat_row"
+                }
+            ]
+        },
+        {
+            "name": "updatestatus",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_convert",
+                    "type": "bool"
+                },
+                {
+                    "name": "disabled_veteran",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
             "name": "veteran_row",
             "base": "",
             "fields": [
@@ -153,12 +191,29 @@
             "ricardian_contract": ""
         },
         {
+            "name": "impvtstat",
+            "type": "impvtstat",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatestatus",
+            "type": "updatestatus",
+            "ricardian_contract": ""
+        },
+        {
             "name": "veteranlog",
             "type": "veteranlog",
             "ricardian_contract": ""
         }
     ],
     "tables": [
+        {
+            "name": "config",
+            "type": "config_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
         {
             "name": "veterans",
             "type": "veteran_row",

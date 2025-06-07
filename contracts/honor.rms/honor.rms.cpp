@@ -7,11 +7,21 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
         return;
     }
     check(quantity.amount > 0, "must transfer positive quantity");
+    auto config = _config.get_or_default();
+    check(!config.disabled_convert, "convert is disabled");
 
     uint64_t bytes = (quantity.amount * 494) / 10;
+    action(permission_level{_self, "active"_n}, RAM_BANK, "rams2ramx"_n, make_tuple(from, bytes)).send();
 
-    auto itr = _veteran.find(from.value);
+    // log
+    veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});
+    veteranlog.send(from, to, quantity, memo, bytes);
+
+    // if veteran is disabled, don't update veteran stat
+    if (config.disabled_veteran) return;
+
     bool is_new = false;
+    auto itr = _veteran.find(from.value);
     if (itr == _veteran.end()) {
         is_new = true;
         _veteran.emplace(get_self(), [&](auto& row) {
@@ -28,8 +38,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
         });
     }
 
-    action(permission_level{_self, "active"_n}, RAM_BANK, "rams2ramx"_n, make_tuple(from, bytes)).send();
-
     // update veteran stat
     auto stat_itr = _state.get_or_default();
     if (is_new) {
@@ -39,10 +47,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
     stat_itr.total_bytes += bytes;
     stat_itr.last_update = current_time_point();
     _state.set(stat_itr, get_self());
-
-    // log
-    veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});
-    veteranlog.send(from, to, quantity, memo, bytes);
 }
 
 [[eosio::on_notify("btc.xsat::transfer")]]
@@ -135,4 +139,13 @@ void honor::claim(const name& veteran) {
     // log
     claimlog_action claimlog(get_self(), {get_self(), "active"_n});
     claimlog.send(sender, veteran, claimed_amount);
+}
+
+[[eosio::action]]
+void honor::updatestatus(const bool disabled_convert, const bool disabled_veteran) {
+    require_auth(get_self());
+    auto config = _config.get_or_default();
+    config.disabled_convert = disabled_convert;
+    config.disabled_veteran = disabled_veteran;
+    _config.set(config, get_self());
 }

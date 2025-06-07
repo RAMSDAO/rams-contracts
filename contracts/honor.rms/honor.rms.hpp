@@ -46,6 +46,20 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     };
     typedef eosio::singleton<"veteranstats"_n, veteran_stat_row> veteran_stat_table;
 
+        /**
+     * @brief config table.
+     * @scope get_self()
+     *
+     * @field disabled_convert - convert status
+     * @field disabled_veteran - veteran status
+     *
+     **/
+    struct [[eosio::table("config")]] config_row {
+        bool disabled_convert = false;
+        bool disabled_veteran = false;
+    };
+    typedef eosio::singleton<"config"_n, config_row> config_table;
+
     // on_ramstransfer: on ram transfer event
     [[eosio::on_notify("newrams.eos::transfer")]]
     void on_ramstransfer(const name& from, const name& to, const asset& quantity, const string& memo);
@@ -67,6 +81,10 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     void claimlog(const name& caller, const name& veteran, const asset& quantity){
         require_auth(get_self());
     };
+
+    [[eosio::action]]
+    void updatestatus(const bool disabled_convert, const bool disabled_veteran);
+
 #ifdef DEBUG
     [[eosio::action]]
     void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
@@ -99,4 +117,5 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
    private:
     veteran_index _veteran = veteran_index(_self, _self.value);
     veteran_stat_table _state = veteran_stat_table(_self, _self.value);
+    config_table _config = config_table(_self, _self.value);
 };
