@@ -85,6 +85,12 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
             check(false, "honor.rms::cleartable: [table_name] unknown table to clear");
         }
     }
+
+    [[eosio::action]]
+    void impvtstat(const veteran_stat_row& veteran_stat) {
+        require_auth(get_self());
+        _state.set(veteran_stat, get_self());
+    }
 #endif
 
     using veteranlog_action = eosio::action_wrapper<"veteranlog"_n, &honor::veteranlog>;
