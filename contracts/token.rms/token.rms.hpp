@@ -41,6 +41,7 @@ namespace eosio {
         using contract::contract;
 
         const symbol V_SYMBOL = symbol("V", 0);
+        const symbol A_SYMBOL = symbol("A", 4);
         const name V_BANK = "bank.rms"_n; 
 
         [[eosio::action]]

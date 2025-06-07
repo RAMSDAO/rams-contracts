@@ -19,6 +19,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using contract::contract;
 
     const uint16_t RATIO_PRECISION = 10000;
+    const uint16_t VETERAN_RATIO = 2000;
 
     const name RAMX_EOS = "ramx.eos"_n;
     const name HONOR_RMS = "honor.rms"_n;
@@ -448,4 +449,5 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     template <typename T, typename ITR>
     void update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes, T& _reward_token,
                        const ITR& reward_itr);
+    void do_distribute_gasfund(const extended_asset& quantity);
 };

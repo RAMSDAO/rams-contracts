@@ -167,6 +167,12 @@ void bank::on_transfer(const name& from, const name& to, const asset& quantity, 
     const name contract = get_first_receiver();
     extended_asset ext_in = {quantity, contract};
 
+    // distribute gasfund
+    if (from == GAS_FUND_CONTRACT && contract == BTC_XSAT && quantity.symbol == BTC_SYMBOL) {
+        do_distribute_gasfund(ext_in);
+        return;
+    }
+
     const std::vector<string> parts = rams::utils::split(memo, ",");
     check(parts.size() == 2 && parts[0] == "rent", ERROR_TRANSFER_TOKEN_INVALID_MEMO);
     auto borrower = rams::utils::parse_name(parts[1]);
@@ -398,7 +404,8 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
 
     check(bytes > 0, "rambank.eos::rams2ramx: bytes must be greater than 0");
     auto self_itr = _deposit.require_find(RAMS_DAO.value, "rambank.eos::rams2ramx: ramsdao.eos account does not exists");
-    check(self_itr->bytes >= bytes, "rambank.eos::rams2ramx: ramsdao.eos account does not have enough bytes");
+    auto frozen_bytes = self_itr->frozen_bytes.has_value() ? self_itr->frozen_bytes.value() : 0;
+    check(self_itr->bytes - frozen_bytes >= bytes, "rambank.eos::rams2ramx: ramsdao.eos account does not have enough bytes");
     auto deposit_itr = _deposit.find(owner.value);
     if (deposit_itr == _deposit.end()) {
         deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {
@@ -582,4 +589,22 @@ void bank::token_transfer(const name& from, const name& to, const extended_asset
 
 void bank::ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo) {
     action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
+}
+
+void bank::do_distribute_gasfund(const extended_asset& quantity) {
+    // calcuate veteran and reward
+    auto veteran_amount = quantity.quantity.amount * VETERAN_RATIO / RATIO_PRECISION;
+    auto reward_amount = quantity.quantity.amount - veteran_amount;
+    
+    // transfer to honor.rms
+    if(veteran_amount > 0) {
+        extended_asset veteran_quantity = {asset(veteran_amount, quantity.quantity.symbol), quantity.contract};
+        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "from gasfund");
+    }
+    
+    // transfer to stram
+    if(reward_amount > 0) {
+        extended_asset reward_quantity = {asset(reward_amount, quantity.quantity.symbol), quantity.contract};
+        token_transfer(get_self(), POOL_REWARD_CONTAINER, reward_quantity, "from gasfund");
+    }
 }

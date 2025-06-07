@@ -128,7 +128,7 @@ void honor::claim(const name& veteran) {
     state.total_claimed += claimed_amount;
     _state.set(state, get_self());
 
-    // transfer claimed amount to sender
+    // transfer claimed amount to veteran
     eosio::token::transfer_action transfer(BTC_XSAT, {get_self(), "active"_n});
     transfer.send(get_self(), veteran, claimed_amount, "claim reward");
 

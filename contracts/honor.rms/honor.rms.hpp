@@ -79,6 +79,8 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
             while (itr != _veteran.end()) {
                 itr = _veteran.erase(itr);
             }
+        }else if (table_name == "veteranstats"_n) {
+            _state.remove();
         } else {
             check(false, "honor.rms::cleartable: [table_name] unknown table to clear");
         }

@@ -46,6 +46,12 @@ namespace eosio {
         if (from == _self || to != _self) {
             return;
         }
+
+        // ignore non-A tokens
+        if (quantity.symbol != A_SYMBOL) {
+            return;
+        }
+
         check(quantity.amount > 0, "must transfer positive quantity");
         // check status
         config_row config = _config.get_or_default();
@@ -76,6 +82,6 @@ namespace eosio {
         issue_v(payer, bytes);
 
         a2vlog_action a2vlog_act{get_self(), {get_self(), "active"_n}};
-        a2vlog_act.send(payer, asset{quantity.amount, V_SYMBOL}, bytes, asset{bytes, V_SYMBOL});
+        a2vlog_act.send(payer, quantity, bytes, asset{bytes, V_SYMBOL});
     }
 }  // namespace eosio
