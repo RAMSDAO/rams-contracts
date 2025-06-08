@@ -427,8 +427,13 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
         row.bytes -= bytes;
     });
 
-    // settlement ramx reward
-    token_change(RAMS_DAO, stat.deposited_bytes, self_itr->bytes + bytes, self_itr->bytes);
+    // settlement ramsdao.eos reward
+    auto rent_token_itr = _rent_token.begin();
+    while (rent_token_itr != _rent_token.end()) {
+        bank::user_reward_table _user_reward(get_self(), rent_token_itr->id);
+        update_user_reward(RAMS_DAO, self_itr->bytes + bytes, self_itr->bytes, _user_reward, rent_token_itr);
+        rent_token_itr++;
+    }
 }
 
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
