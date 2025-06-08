@@ -599,12 +599,12 @@ void bank::do_distribute_gasfund(const extended_asset& quantity) {
     // transfer to honor.rms
     if(veteran_amount > 0) {
         extended_asset veteran_quantity = {asset(veteran_amount, quantity.quantity.symbol), quantity.contract};
-        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "from gasfund");
+        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
     }
     
     // transfer to stram
     if(reward_amount > 0) {
         extended_asset reward_quantity = {asset(reward_amount, quantity.quantity.symbol), quantity.contract};
-        token_transfer(get_self(), POOL_REWARD_CONTAINER, reward_quantity, "from gasfund");
+        token_transfer(get_self(), POOL_REWARD_CONTAINER, reward_quantity, "gasfund");
     }
 }
