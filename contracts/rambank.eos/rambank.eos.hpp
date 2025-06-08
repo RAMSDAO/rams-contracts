@@ -438,6 +438,17 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
             _rent.emplace(get_self(), [&](auto& row) { row = rent; });
         }
     }
+
+    [[eosio::action]]
+    void imprewards(const vector<user_reward_row>& user_rewards, const name& scope) {
+        require_auth(get_self());
+
+        // batch import data to old user rewards
+        user_reward_table _user_reward(get_self(), scope.value);
+        for (const auto& user_reward : user_rewards) {
+            _user_reward.emplace(get_self(), [&](auto& row) { row = user_reward; });
+        }
+    }
 #endif
 
     // action wrappers

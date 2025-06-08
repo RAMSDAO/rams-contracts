@@ -270,6 +270,20 @@
             ]
         },
         {
+            "name": "imprewards",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user_rewards",
+                    "type": "user_reward_row[]"
+                },
+                {
+                    "name": "scope",
+                    "type": "name"
+                }
+            ]
+        },
+        {
             "name": "impstat",
             "base": "",
             "fields": [
@@ -704,6 +718,11 @@
         {
             "name": "imprenttoken",
             "type": "imprenttoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "imprewards",
+            "type": "imprewards",
             "ricardian_contract": ""
         },
         {
