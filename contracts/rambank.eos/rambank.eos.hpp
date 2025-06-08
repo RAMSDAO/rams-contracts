@@ -449,6 +449,14 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
             _user_reward.emplace(get_self(), [&](auto& row) { row = user_reward; });
         }
     }
+
+    [[eosio::action]]
+    void impconfig(const config_row& config) {
+        require_auth(get_self());
+
+        // batch import data to old config
+        _config.set(config, get_self());
+    }
 #endif
 
     // action wrappers
