@@ -236,6 +236,16 @@
             ]
         },
         {
+            "name": "impconfig",
+            "base": "",
+            "fields": [
+                {
+                    "name": "config",
+                    "type": "config_row"
+                }
+            ]
+        },
+        {
             "name": "impdeposit",
             "base": "",
             "fields": [
@@ -703,6 +713,11 @@
         {
             "name": "impborrow",
             "type": "impborrow",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "impconfig",
+            "type": "impconfig",
             "ricardian_contract": ""
         },
         {

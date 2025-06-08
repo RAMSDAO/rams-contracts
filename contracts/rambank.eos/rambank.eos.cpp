@@ -418,9 +418,17 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
             row.bytes += bytes;
         });
     }
+
+    bank::stat_row stat = _stat.get_or_default();
+    // settlement veteran reward
+    token_change(owner, stat.deposited_bytes, deposit_itr->bytes - bytes, deposit_itr->bytes);
+
     _deposit.modify(self_itr, same_payer, [&](auto& row) {
         row.bytes -= bytes;
     });
+
+    // settlement ramx reward
+    token_change(owner, stat.deposited_bytes, self_itr->bytes + bytes, self_itr->bytes);
 }
 
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
