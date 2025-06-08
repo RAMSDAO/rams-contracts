@@ -399,6 +399,45 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
             _deposit.emplace(get_self(), [&](auto& row) { row = deposit; });
         }
     }
+
+    [[eosio::action]]
+    void imprenttoken(const vector<rent_token_row>& rent_tokens) {
+        require_auth(get_self());
+
+        // batch import data to old rent tokens
+        for (const auto& rent_token : rent_tokens) {
+            _rent_token.emplace(get_self(), [&](auto& row) { row = rent_token; });
+        }
+    }
+
+    [[eosio::action]]
+    void impborrow(const vector<borrow_row>& borrows) {
+        require_auth(get_self());
+
+        // batch import data to old borrows
+        for (const auto& borrow : borrows) {
+            _borrow.emplace(get_self(), [&](auto& row) { row = borrow; });
+        }
+    }
+
+    [[eosio::action]]
+    void impstat(const stat_row& stat) {
+        require_auth(get_self());
+
+        // batch import data to old stat
+        _stat.set(stat, get_self());
+    }
+
+    [[eosio::action]]
+    void imprents(const vector<rent_row>& rents, const name& scope) {
+        require_auth(get_self());
+
+        rent_table _rent(get_self(), scope.value);
+        // batch import data to old rents
+        for (const auto& rent : rents) {
+            _rent.emplace(get_self(), [&](auto& row) { row = rent; });
+        }
+    }
 #endif
 
     // action wrappers
