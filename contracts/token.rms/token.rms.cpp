@@ -82,6 +82,6 @@ namespace eosio {
         issue_v(payer, bytes);
 
         a2vlog_action a2vlog_act{get_self(), {get_self(), "active"_n}};
-        a2vlog_act.send(payer, quantity, bytes, asset{bytes, V_SYMBOL});
+        a2vlog_act.send(payer, asset{quantity.amount, A_SYMBOL}, bytes, asset{bytes, V_SYMBOL});
     }
 }  // namespace eosio
