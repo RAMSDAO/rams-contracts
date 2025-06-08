@@ -439,7 +439,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     void token_change(const name& owner, const uint64_t deposit_bytes, const uint64_t pre_amount,
                       const uint64_t now_amount);
-    uint64_t get_reward(const extended_symbol& token, const uint32_t time_elapsed);
+    uint64_t get_reward(const extended_symbol& token);
 
     template <typename T>
     user_reward_table::const_iterator update_user_reward(const name& owner, const uint64_t& pre_amount,

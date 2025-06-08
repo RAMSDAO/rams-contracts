@@ -548,14 +548,16 @@ bank::user_reward_table::const_iterator bank::update_user_reward(const name& own
 template <typename T, typename ITR>
 void bank::update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes, T& _reward_token,
                          const ITR& reward_itr) {
-    uint128_t incr_acc_per_share = 0;
-    auto time_elapsed = current_time.sec_since_epoch() - reward_itr->last_reward_time.sec_since_epoch();
     auto rewards = 0;
-    if (time_elapsed > 0 && deposited_bytes > 0) {
-        rewards = get_reward(reward_itr->token, time_elapsed);
-        incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), deposited_bytes);
+    if (deposited_bytes > 0) {
+        rewards = get_reward(reward_itr->token);
     }
 
+    if (rewards == 0) {
+        return;
+    }
+
+    uint128_t incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), deposited_bytes);
     _reward_token.modify(reward_itr, same_payer, [&](auto& row) {
         row.acc_per_share += incr_acc_per_share;
         row.last_reward_time = current_time;
@@ -564,7 +566,7 @@ void bank::update_reward(const time_point_sec& current_time, const uint64_t depo
     });
 }
 
-uint64_t bank::get_reward(const extended_symbol& token, const uint32_t time_elapsed) {
+uint64_t bank::get_reward(const extended_symbol& token) {
     uint64_t balance = get_balance(POOL_REWARD_CONTAINER, token);
     if (balance > 0) {
         check(balance <= asset::max_amount, "reward issued overflow");
@@ -593,18 +595,16 @@ void bank::ram_transfer(const name& from, const name& to, const int64_t bytes, c
 
 void bank::do_distribute_gasfund(const extended_asset& quantity) {
     // calcuate veteran and reward
-    auto veteran_amount = quantity.quantity.amount * VETERAN_RATIO / RATIO_PRECISION;
-    auto reward_amount = quantity.quantity.amount - veteran_amount;
+    auto veteran_quantity = quantity * VETERAN_RATIO / RATIO_PRECISION;
+    auto reward_quantity = quantity - veteran_quantity;
     
     // transfer to honor.rms
-    if(veteran_amount > 0) {
-        extended_asset veteran_quantity = {asset(veteran_amount, quantity.quantity.symbol), quantity.contract};
+    if(veteran_quantity.quantity.amount > 0) {
         token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
     }
     
     // transfer to stram
-    if(reward_amount > 0) {
-        extended_asset reward_quantity = {asset(reward_amount, quantity.quantity.symbol), quantity.contract};
+    if(reward_quantity.quantity.amount > 0) {
         token_transfer(get_self(), POOL_REWARD_CONTAINER, reward_quantity, "gasfund");
     }
 }
