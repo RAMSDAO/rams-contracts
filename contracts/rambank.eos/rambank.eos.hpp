@@ -440,11 +440,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     }
 
     [[eosio::action]]
-    void imprewards(const vector<user_reward_row>& user_rewards, const name& scope) {
+    void imprewards(const vector<user_reward_row>& user_rewards, const uint64_t scope) {
         require_auth(get_self());
 
         // batch import data to old user rewards
-        user_reward_table _user_reward(get_self(), scope.value);
+        user_reward_table _user_reward(get_self(), scope);
         for (const auto& user_reward : user_rewards) {
             _user_reward.emplace(get_self(), [&](auto& row) { row = user_reward; });
         }
