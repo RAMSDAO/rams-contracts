@@ -348,9 +348,12 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
 
     // settlement reward
     bank::stat_row stat = _stat.get_or_default();
-    token_change(from, stat.deposited_bytes, from_deposit_itr->bytes + bytes, from_deposit_itr->bytes);
-    token_change(to, stat.deposited_bytes, to_deposit_itr->bytes - bytes, to_deposit_itr->bytes);
-
+    std::vector<std::tuple<name, uint64_t, uint64_t>> changes = {
+        {from, from_deposit_itr->bytes + bytes, from_deposit_itr->bytes},
+        {to, to_deposit_itr->bytes - bytes, to_deposit_itr->bytes}
+    };
+    token_change_batch(changes, stat.deposited_bytes);
+    
     // log
     bank::transferlog_action transferlog(get_self(), {get_self(), "active"_n});
     transferlog.send(from, to, bytes, from_deposit_itr->bytes, to_deposit_itr->bytes, memo);
