@@ -282,7 +282,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      * - **authority**: `ramx.eos`
      *
      * @param owner - ram’s holding account.
-     * @param bytes - bytes of RAM to freezed.
+     * @param bytes - bytes of RAM to frozen.
      *
      */
     [[eosio::action]]
@@ -497,7 +497,8 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     void token_change(const name& owner, const uint64_t deposit_bytes, const uint64_t pre_amount,
                       const uint64_t now_amount);
-    void token_change_batch(const vector<tuple<name, uint64_t, uint64_t>>& changes, const uint64_t deposit_bytes) uint64_t get_reward(const extended_symbol& token);
+    void token_change_batch(const vector<tuple<name, uint64_t, uint64_t>>& changes, const uint64_t deposit_bytes);
+    uint64_t get_reward(const extended_symbol& token);
 
     template <typename T>
     user_reward_table::const_iterator update_user_reward(const name& owner, const uint64_t& pre_amount,

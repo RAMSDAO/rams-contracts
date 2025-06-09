@@ -550,7 +550,10 @@ bank::user_reward_table::const_iterator bank::update_user_reward(const name& own
                                                                  const rent_token_table::const_iterator& reward_itr) {
     auto user_reward_itr = _user_reward.find(owner.value);
 
-    uint64_t per_debt = user_reward_itr->debt;
+    uint64_t per_debt = 0;
+    if (user_reward_itr != _user_reward.end()) {
+        per_debt = user_reward_itr->debt;
+    }
     uint128_t reward = safemath128::mul(pre_amount, reward_itr->acc_per_share) / PRECISION_FACTOR - per_debt;
     uint128_t now_debt = safemath128::mul(now_amount, reward_itr->acc_per_share) / PRECISION_FACTOR;
     check(now_debt <= (uint64_t)-1LL, "debt overflow");
