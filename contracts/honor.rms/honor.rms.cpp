@@ -17,8 +17,9 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
     veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});
     veteranlog.send(from, to, quantity, memo, bytes);
 
-    // if veteran is disabled, don't update veteran stat
-    if (config.disabled_veteran) return;
+    // check veteran deadline
+    auto current_time = current_time_point().sec_since_epoch();
+    if (current_time > config.veteran_dealine) return;
 
     bool is_new = false;
     auto itr = _veteran.find(from.value);
@@ -142,10 +143,10 @@ void honor::claim(const name& veteran) {
 }
 
 [[eosio::action]]
-void honor::updatestatus(const bool disabled_convert, const bool disabled_veteran) {
+void honor::updatestatus(const bool disabled_convert, const uint32_t veteran_dealine) {
     require_auth(get_self());
     auto config = _config.get_or_default();
     config.disabled_convert = disabled_convert;
-    config.disabled_veteran = disabled_veteran;
+    config.veteran_dealine = veteran_dealine;
     _config.set(config, get_self());
 }

@@ -58,8 +58,8 @@
                     "type": "bool"
                 },
                 {
-                    "name": "disabled_veteran",
-                    "type": "bool"
+                    "name": "veteran_dealine",
+                    "type": "uint32"
                 }
             ]
         },
@@ -82,8 +82,8 @@
                     "type": "bool"
                 },
                 {
-                    "name": "disabled_veteran",
-                    "type": "bool"
+                    "name": "veteran_dealine",
+                    "type": "uint32"
                 }
             ]
         },
