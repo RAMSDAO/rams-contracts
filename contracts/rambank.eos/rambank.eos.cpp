@@ -419,21 +419,17 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
         });
     }
 
-    bank::stat_row stat = _stat.get_or_default();
-    // settlement veteran reward
-    token_change(owner, stat.deposited_bytes, deposit_itr->bytes - bytes, deposit_itr->bytes);
-
     _deposit.modify(self_itr, same_payer, [&](auto& row) {
         row.bytes -= bytes;
     });
 
-    // settlement ramsdao.eos reward
-    auto rent_token_itr = _rent_token.begin();
-    while (rent_token_itr != _rent_token.end()) {
-        bank::user_reward_table _user_reward(get_self(), rent_token_itr->id);
-        update_user_reward(RAMS_DAO, self_itr->bytes + bytes, self_itr->bytes, _user_reward, rent_token_itr);
-        rent_token_itr++;
-    }
+    // settlement veteran reward
+    bank::stat_row stat = _stat.get_or_default();
+    std::vector<std::tuple<name, uint64_t, uint64_t>> changes = {
+        {owner, deposit_itr->bytes - bytes, deposit_itr->bytes},
+        {RAMS_DAO, self_itr->bytes + bytes, self_itr->bytes}
+    };
+    token_change_batch(changes, stat.deposited_bytes);
 }
 
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
@@ -531,6 +527,23 @@ void bank::token_change(const name& owner, const uint64_t deposit_bytes, const u
     }
 }
 
+void bank::token_change_batch(const vector<tuple<name, uint64_t, uint64_t>>& changes, const uint64_t deposit_bytes) {
+    auto current_time = current_time_point();
+    auto rent_token_itr = _rent_token.begin();
+    while (rent_token_itr != _rent_token.end()) {
+        // call only once update_reward
+        update_reward(current_time, deposit_bytes, _rent_token, rent_token_itr);
+        bank::user_reward_table _user_reward(get_self(), rent_token_itr->id);
+        for (const auto& change : changes) {
+            const name& owner = std::get<0>(change);
+            const uint64_t pre_amount = std::get<1>(change);
+            const uint64_t now_amount = std::get<2>(change);
+            update_user_reward(owner, pre_amount, now_amount, _user_reward, rent_token_itr);
+        }
+        rent_token_itr++;
+    }
+}
+
 template <typename T>
 bank::user_reward_table::const_iterator bank::update_user_reward(const name& owner, const uint64_t& pre_amount,
                                                                  const uint64_t& now_amount, T& _user_reward,
@@ -610,12 +623,12 @@ void bank::do_distribute_gasfund(const extended_asset& quantity) {
     // calcuate veteran and reward
     auto veteran_quantity = quantity * VETERAN_RATIO / RATIO_PRECISION;
     auto reward_quantity = quantity - veteran_quantity;
-    
+
     // transfer to honor.rms
     if(veteran_quantity.quantity.amount > 0) {
         token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
     }
-    
+
     // transfer to stram
     if(reward_quantity.quantity.amount > 0) {
         token_transfer(get_self(), POOL_REWARD_CONTAINER, reward_quantity, "gasfund");
