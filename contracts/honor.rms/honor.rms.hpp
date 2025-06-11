@@ -51,11 +51,11 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
      * @scope get_self()
      *
      * @field disabled_convert - convert status
-     * @field veteran_dealine - veteran deadline time
+     * @field veteran_deadline - veteran deadline time
      **/
     struct [[eosio::table("config")]] config_row {
         bool disabled_convert = false;
-        uint32_t veteran_dealine = 1758067200; // 2025-09-16 00:00:00
+        time_point_sec veteran_deadline = time_point_sec(1758038400); // 2025-09-17 00:00:00 UTC+8 (CST)
     };
     typedef eosio::singleton<"config"_n, config_row> config_table;
 
@@ -82,7 +82,7 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     };
 
     [[eosio::action]]
-    void updatestatus(const bool disabled_convert, const uint32_t veteran_dealine);
+    void updatestatus(const bool disabled_convert, const time_point_sec veteran_deadline);
 
 #ifdef DEBUG
     [[eosio::action]]

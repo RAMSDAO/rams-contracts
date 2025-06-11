@@ -58,8 +58,8 @@
                     "type": "bool"
                 },
                 {
-                    "name": "veteran_dealine",
-                    "type": "uint32"
+                    "name": "veteran_deadline",
+                    "type": "time_point_sec"
                 }
             ]
         },
@@ -82,8 +82,8 @@
                     "type": "bool"
                 },
                 {
-                    "name": "veteran_dealine",
-                    "type": "uint32"
+                    "name": "veteran_deadline",
+                    "type": "time_point_sec"
                 }
             ]
         },
