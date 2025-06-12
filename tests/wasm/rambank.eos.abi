@@ -180,6 +180,24 @@
             ]
         },
         {
+            "name": "distributlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_reward",
+                    "type": "extended_asset"
+                },
+                {
+                    "name": "veteran_reward",
+                    "type": "extended_asset"
+                },
+                {
+                    "name": "reward_pool",
+                    "type": "extended_asset"
+                }
+            ]
+        },
+        {
             "name": "extended_symbol",
             "base": "",
             "fields": [
@@ -698,6 +716,11 @@
         {
             "name": "depositlog",
             "type": "depositlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "distributlog",
+            "type": "distributlog",
             "ricardian_contract": ""
         },
         {

@@ -367,6 +367,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void distributlog(const extended_asset& total_reward, const extended_asset& veteran_reward, const extended_asset& reward_pool) {
+        require_auth(get_self());
+    }
+
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
@@ -474,6 +479,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using transferlog_action = eosio::action_wrapper<"transferlog"_n, &bank::transferlog>;
     using freezelog_action = eosio::action_wrapper<"freezelog"_n, &bank::freezelog>;
     using unfreezelog_action = eosio::action_wrapper<"unfreezelog"_n, &bank::unfreezelog>;
+    using distributlog_action = eosio::action_wrapper<"distributlog"_n, &bank::distributlog>;
 
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
