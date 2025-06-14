@@ -46,15 +46,12 @@ namespace eosio {
         if (from == _self || to != _self) {
             return;
         }
-<<<<<<< HEAD
-=======
 
         // ignore non-A tokens
         if (quantity.symbol != A_SYMBOL) {
             return;
         }
 
->>>>>>> new-rams
         check(quantity.amount > 0, "must transfer positive quantity");
         // check status
         config_row config = _config.get_or_default();
@@ -85,10 +82,6 @@ namespace eosio {
         issue_v(payer, bytes);
 
         a2vlog_action a2vlog_act{get_self(), {get_self(), "active"_n}};
-<<<<<<< HEAD
-        a2vlog_act.send(payer, asset{quantity.amount, V_SYMBOL}, bytes, asset{bytes, V_SYMBOL});
-=======
         a2vlog_act.send(payer, asset{quantity.amount, A_SYMBOL}, bytes, asset{bytes, V_SYMBOL});
->>>>>>> new-rams
     }
 }  // namespace eosio

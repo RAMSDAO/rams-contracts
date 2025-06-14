@@ -50,8 +50,6 @@
             ]
         },
         {
-<<<<<<< HEAD
-=======
             "name": "config_row",
             "base": "",
             "fields": [
@@ -90,7 +88,6 @@
             ]
         },
         {
->>>>>>> new-rams
             "name": "veteran_row",
             "base": "",
             "fields": [
@@ -194,8 +191,6 @@
             "ricardian_contract": ""
         },
         {
-<<<<<<< HEAD
-=======
             "name": "impvtstat",
             "type": "impvtstat",
             "ricardian_contract": ""
@@ -206,7 +201,6 @@
             "ricardian_contract": ""
         },
         {
->>>>>>> new-rams
             "name": "veteranlog",
             "type": "veteranlog",
             "ricardian_contract": ""
@@ -214,8 +208,6 @@
     ],
     "tables": [
         {
-<<<<<<< HEAD
-=======
             "name": "config",
             "type": "config_row",
             "index_type": "i64",
@@ -223,7 +215,6 @@
             "key_types": []
         },
         {
->>>>>>> new-rams
             "name": "veterans",
             "type": "veteran_row",
             "index_type": "i64",

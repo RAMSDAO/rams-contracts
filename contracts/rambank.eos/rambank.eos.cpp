@@ -409,7 +409,6 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
     auto self_itr = _deposit.require_find(RAMS_DAO.value, "rambank.eos::rams2ramx: ramsdao.eos account does not exists");
     auto frozen_bytes = self_itr->frozen_bytes.has_value() ? self_itr->frozen_bytes.value() : 0;
     check(self_itr->bytes - frozen_bytes >= bytes, "rambank.eos::rams2ramx: ramsdao.eos account does not have enough bytes");
-
     auto deposit_itr = _deposit.find(owner.value);
     if (deposit_itr == _deposit.end()) {
         deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {

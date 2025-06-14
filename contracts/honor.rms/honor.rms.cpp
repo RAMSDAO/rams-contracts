@@ -7,13 +7,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
         return;
     }
     check(quantity.amount > 0, "must transfer positive quantity");
-<<<<<<< HEAD
-
-    uint64_t bytes = (quantity.amount * 494) / 10;
-
-    auto itr = _veteran.find(from.value);
-    bool is_new = false;
-=======
     auto config = _config.get_or_default();
     check(!config.disabled_convert, "convert is disabled");
 
@@ -30,7 +23,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
 
     bool is_new = false;
     auto itr = _veteran.find(from.value);
->>>>>>> new-rams
     if (itr == _veteran.end()) {
         is_new = true;
         _veteran.emplace(get_self(), [&](auto& row) {
@@ -47,11 +39,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
         });
     }
 
-<<<<<<< HEAD
-    action(permission_level{_self, "active"_n}, RAM_BANK, "rams2ramx"_n, make_tuple(from, bytes)).send();
-
-=======
->>>>>>> new-rams
     // update veteran stat
     auto stat_itr = _state.get_or_default();
     if (is_new) {
@@ -61,13 +48,6 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
     stat_itr.total_bytes += bytes;
     stat_itr.last_update = current_time_point();
     _state.set(stat_itr, get_self());
-<<<<<<< HEAD
-
-    // log
-    veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});
-    veteranlog.send(from, to, quantity, memo, bytes);
-=======
->>>>>>> new-rams
 }
 
 [[eosio::on_notify("btc.xsat::transfer")]]
@@ -138,11 +118,7 @@ void honor::claim(const name& veteran) {
 
     // update state
     auto state = _state.get_or_default();
-<<<<<<< HEAD
-    check(state.total_unclaimed.amount > itr->unclaimed.amount, "no enough unclaimed amount");
-=======
     check(state.total_unclaimed.amount >= itr->unclaimed.amount, "no enough unclaimed amount");
->>>>>>> new-rams
 
     auto sender = get_sender();
     auto claimed_amount = itr->unclaimed;
@@ -157,19 +133,13 @@ void honor::claim(const name& veteran) {
     state.total_claimed += claimed_amount;
     _state.set(state, get_self());
 
-<<<<<<< HEAD
-    // transfer claimed amount to sender
-=======
     // transfer claimed amount to veteran
->>>>>>> new-rams
     eosio::token::transfer_action transfer(BTC_XSAT, {get_self(), "active"_n});
     transfer.send(get_self(), veteran, claimed_amount, "claim reward");
 
     // log
     claimlog_action claimlog(get_self(), {get_self(), "active"_n});
     claimlog.send(sender, veteran, claimed_amount);
-<<<<<<< HEAD
-=======
 }
 
 [[eosio::action]]
@@ -179,5 +149,4 @@ void honor::updatestatus(const bool disabled_convert, const time_point_sec veter
     config.disabled_convert = disabled_convert;
     config.veteran_deadline = veteran_deadline;
     _config.set(config, get_self());
->>>>>>> new-rams
 }
