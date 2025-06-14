@@ -50,6 +50,47 @@
             ]
         },
         {
+<<<<<<< HEAD
+=======
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_convert",
+                    "type": "bool"
+                },
+                {
+                    "name": "veteran_deadline",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "impvtstat",
+            "base": "",
+            "fields": [
+                {
+                    "name": "veteran_stat",
+                    "type": "veteran_stat_row"
+                }
+            ]
+        },
+        {
+            "name": "updatestatus",
+            "base": "",
+            "fields": [
+                {
+                    "name": "disabled_convert",
+                    "type": "bool"
+                },
+                {
+                    "name": "veteran_deadline",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+>>>>>>> new-rams
             "name": "veteran_row",
             "base": "",
             "fields": [
@@ -153,6 +194,19 @@
             "ricardian_contract": ""
         },
         {
+<<<<<<< HEAD
+=======
+            "name": "impvtstat",
+            "type": "impvtstat",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "updatestatus",
+            "type": "updatestatus",
+            "ricardian_contract": ""
+        },
+        {
+>>>>>>> new-rams
             "name": "veteranlog",
             "type": "veteranlog",
             "ricardian_contract": ""
@@ -160,6 +214,16 @@
     ],
     "tables": [
         {
+<<<<<<< HEAD
+=======
+            "name": "config",
+            "type": "config_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+>>>>>>> new-rams
             "name": "veterans",
             "type": "veteran_row",
             "index_type": "i64",

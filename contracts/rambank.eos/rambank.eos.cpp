@@ -122,7 +122,7 @@ void bank::borrow(const uint64_t bytes, const name& account) {
             row.bytes += bytes;
         });
     } else {
-        _borrow.emplace(get_self(), [&](auto& row) {
+        borrow_itr = _borrow.emplace(get_self(), [&](auto& row) {
             row.account = account;
             row.bytes = bytes;
         });
@@ -166,6 +166,12 @@ void bank::on_transfer(const name& from, const name& to, const asset& quantity, 
 
     const name contract = get_first_receiver();
     extended_asset ext_in = {quantity, contract};
+
+    // distribute gasfund
+    if (from == GAS_FUND_CONTRACT && contract == BTC_XSAT && quantity.symbol == BTC_SYMBOL) {
+        do_distribute_gasfund(ext_in);
+        return;
+    }
 
     const std::vector<string> parts = rams::utils::split(memo, ",");
     check(parts.size() == 2 && parts[0] == "rent", ERROR_TRANSFER_TOKEN_INVALID_MEMO);
@@ -342,9 +348,12 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
 
     // settlement reward
     bank::stat_row stat = _stat.get_or_default();
-    token_change(from, stat.deposited_bytes, from_deposit_itr->bytes + bytes, from_deposit_itr->bytes);
-    token_change(to, stat.deposited_bytes, to_deposit_itr->bytes - bytes, to_deposit_itr->bytes);
-
+    std::vector<std::tuple<name, uint64_t, uint64_t>> changes = {
+        {from, from_deposit_itr->bytes + bytes, from_deposit_itr->bytes},
+        {to, to_deposit_itr->bytes - bytes, to_deposit_itr->bytes}
+    };
+    token_change_batch(changes, stat.deposited_bytes);
+    
     // log
     bank::transferlog_action transferlog(get_self(), {get_self(), "active"_n});
     transferlog.send(from, to, bytes, from_deposit_itr->bytes, to_deposit_itr->bytes, memo);
@@ -398,7 +407,9 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
 
     check(bytes > 0, "rambank.eos::rams2ramx: bytes must be greater than 0");
     auto self_itr = _deposit.require_find(RAMS_DAO.value, "rambank.eos::rams2ramx: ramsdao.eos account does not exists");
-    check(self_itr->bytes >= bytes, "rambank.eos::rams2ramx: ramsdao.eos account does not have enough bytes");
+    auto frozen_bytes = self_itr->frozen_bytes.has_value() ? self_itr->frozen_bytes.value() : 0;
+    check(self_itr->bytes - frozen_bytes >= bytes, "rambank.eos::rams2ramx: ramsdao.eos account does not have enough bytes");
+
     auto deposit_itr = _deposit.find(owner.value);
     if (deposit_itr == _deposit.end()) {
         deposit_itr = _deposit.emplace(get_self(), [&](auto& row) {
@@ -411,9 +422,18 @@ void bank::rams2ramx(const name& owner, const uint64_t bytes) {
             row.bytes += bytes;
         });
     }
+
     _deposit.modify(self_itr, same_payer, [&](auto& row) {
         row.bytes -= bytes;
     });
+
+    // settlement veteran reward
+    bank::stat_row stat = _stat.get_or_default();
+    std::vector<std::tuple<name, uint64_t, uint64_t>> changes = {
+        {owner, deposit_itr->bytes - bytes, deposit_itr->bytes},
+        {RAMS_DAO, self_itr->bytes + bytes, self_itr->bytes}
+    };
+    token_change_batch(changes, stat.deposited_bytes);
 }
 
 void bank::do_deposit_rent(const name& owner, const name& borrower, const extended_asset& ext_in, const string& memo) {
@@ -511,13 +531,33 @@ void bank::token_change(const name& owner, const uint64_t deposit_bytes, const u
     }
 }
 
+void bank::token_change_batch(const vector<tuple<name, uint64_t, uint64_t>>& changes, const uint64_t deposit_bytes) {
+    auto current_time = current_time_point();
+    auto rent_token_itr = _rent_token.begin();
+    while (rent_token_itr != _rent_token.end()) {
+        // call only once update_reward
+        update_reward(current_time, deposit_bytes, _rent_token, rent_token_itr);
+        bank::user_reward_table _user_reward(get_self(), rent_token_itr->id);
+        for (const auto& change : changes) {
+            const name& owner = std::get<0>(change);
+            const uint64_t pre_amount = std::get<1>(change);
+            const uint64_t now_amount = std::get<2>(change);
+            update_user_reward(owner, pre_amount, now_amount, _user_reward, rent_token_itr);
+        }
+        rent_token_itr++;
+    }
+}
+
 template <typename T>
 bank::user_reward_table::const_iterator bank::update_user_reward(const name& owner, const uint64_t& pre_amount,
                                                                  const uint64_t& now_amount, T& _user_reward,
                                                                  const rent_token_table::const_iterator& reward_itr) {
     auto user_reward_itr = _user_reward.find(owner.value);
 
-    uint64_t per_debt = user_reward_itr->debt;
+    uint64_t per_debt = 0;
+    if (user_reward_itr != _user_reward.end()) {
+        per_debt = user_reward_itr->debt;
+    }
     uint128_t reward = safemath128::mul(pre_amount, reward_itr->acc_per_share) / PRECISION_FACTOR - per_debt;
     uint128_t now_debt = safemath128::mul(now_amount, reward_itr->acc_per_share) / PRECISION_FACTOR;
     check(now_debt <= (uint64_t)-1LL, "debt overflow");
@@ -541,14 +581,16 @@ bank::user_reward_table::const_iterator bank::update_user_reward(const name& own
 template <typename T, typename ITR>
 void bank::update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes, T& _reward_token,
                          const ITR& reward_itr) {
-    uint128_t incr_acc_per_share = 0;
-    auto time_elapsed = current_time.sec_since_epoch() - reward_itr->last_reward_time.sec_since_epoch();
     auto rewards = 0;
-    if (time_elapsed > 0 && deposited_bytes > 0) {
-        rewards = get_reward(reward_itr->token, time_elapsed);
-        incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), deposited_bytes);
+    if (deposited_bytes > 0) {
+        rewards = get_reward(reward_itr->token);
     }
 
+    if (rewards == 0) {
+        return;
+    }
+
+    uint128_t incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), deposited_bytes);
     _reward_token.modify(reward_itr, same_payer, [&](auto& row) {
         row.acc_per_share += incr_acc_per_share;
         row.last_reward_time = current_time;
@@ -557,7 +599,7 @@ void bank::update_reward(const time_point_sec& current_time, const uint64_t depo
     });
 }
 
-uint64_t bank::get_reward(const extended_symbol& token, const uint32_t time_elapsed) {
+uint64_t bank::get_reward(const extended_symbol& token) {
     uint64_t balance = get_balance(POOL_REWARD_CONTAINER, token);
     if (balance > 0) {
         check(balance <= asset::max_amount, "reward issued overflow");
@@ -582,4 +624,42 @@ void bank::token_transfer(const name& from, const name& to, const extended_asset
 
 void bank::ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo) {
     action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
+}
+
+void bank::do_distribute_gasfund(const extended_asset& quantity) {
+    // calcuate veteran and reward
+    auto veteran_quantity = quantity * VETERAN_RATIO / RATIO_PRECISION;
+    auto reward_quantity = quantity - veteran_quantity;
+
+    // transfer to honor.rms
+    if(veteran_quantity.quantity.amount > 0) {
+        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
+    }
+
+    // transfer to stram
+    if(reward_quantity.quantity.amount > 0) {
+
+        auto reward_token = quantity.get_extended_symbol();
+        auto rewards = get_reward(reward_token);
+
+        // update reward
+        auto stat = _stat.get_or_default();
+        auto current_time = current_time_point();
+        rewards += reward_quantity.quantity.amount;
+
+        auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
+        auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(reward_token));
+        check(rent_token_itr != rent_token_idx.end(), "rambank.eos::do_distribute_gasfund: unsupported rent token");
+
+        uint128_t incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), stat.deposited_bytes);
+        rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {
+            row.acc_per_share += incr_acc_per_share;
+            row.last_reward_time = current_time;
+            row.total_reward += rewards;
+            row.reward_balance += rewards;
+        });
+    }
+
+    bank::distributlog_action distributlog(get_self(), {get_self(), "active"_n});
+    distributlog.send(quantity, veteran_quantity, reward_quantity);
 }

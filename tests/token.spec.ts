@@ -287,6 +287,7 @@ describe('token.rms', () => {
             expect(balance).toEqual(0)
         })
 
+<<<<<<< HEAD
         test('issuefixed - issue to reach target supply', async () => {
             const currentSupply = getSupply('token.rms', 'V')
             const targetSupply = '5000 V'
@@ -305,6 +306,8 @@ describe('token.rms', () => {
             const stat = token_rms.getStat('V')
             expect(stat?.max_supply).toEqual(newMaxSupply)
         })
+=======
+>>>>>>> new-rams
     })
 
     describe('error cases', () => {

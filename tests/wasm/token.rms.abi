@@ -118,6 +118,7 @@
             ]
         },
         {
+<<<<<<< HEAD
             "name": "issuefixed",
             "base": "",
             "fields": [
@@ -136,6 +137,8 @@
             ]
         },
         {
+=======
+>>>>>>> new-rams
             "name": "open",
             "base": "",
             "fields": [
@@ -200,6 +203,7 @@
             ]
         },
         {
+<<<<<<< HEAD
             "name": "setmaxsupply",
             "base": "",
             "fields": [
@@ -214,6 +218,8 @@
             ]
         },
         {
+=======
+>>>>>>> new-rams
             "name": "transfer",
             "base": "",
             "fields": [
@@ -258,11 +264,14 @@
             "ricardian_contract": ""
         },
         {
+<<<<<<< HEAD
             "name": "issuefixed",
             "type": "issuefixed",
             "ricardian_contract": ""
         },
         {
+=======
+>>>>>>> new-rams
             "name": "open",
             "type": "open",
             "ricardian_contract": ""
@@ -283,11 +292,14 @@
             "ricardian_contract": ""
         },
         {
+<<<<<<< HEAD
             "name": "setmaxsupply",
             "type": "setmaxsupply",
             "ricardian_contract": ""
         },
         {
+=======
+>>>>>>> new-rams
             "name": "transfer",
             "type": "transfer",
             "ricardian_contract": ""

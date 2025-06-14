@@ -43,6 +43,7 @@ namespace eosio {
         add_balance(st.issuer, quantity, st.issuer);
     }
 
+<<<<<<< HEAD
     void token::issuefixed(const name& to, const asset& supply, const string& memo) {
         const asset circulating_supply = get_supply(get_self(), supply.symbol.code());
         check(circulating_supply.symbol == supply.symbol, "symbol precision mismatch");
@@ -66,6 +67,8 @@ namespace eosio {
         statstable.modify(st, same_payer, [&](auto& s) { s.max_supply = maximum_supply; });
     }
 
+=======
+>>>>>>> new-rams
     void token::retire(const asset& quantity, const string& memo) {
         auto sym = quantity.symbol;
         check(sym.is_valid(), "invalid symbol name");

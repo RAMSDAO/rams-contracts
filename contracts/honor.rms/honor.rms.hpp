@@ -46,6 +46,22 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     };
     typedef eosio::singleton<"veteranstats"_n, veteran_stat_row> veteran_stat_table;
 
+<<<<<<< HEAD
+=======
+   /**
+     * @brief config table.
+     * @scope get_self()
+     *
+     * @field disabled_convert - convert status
+     * @field veteran_deadline - veteran deadline time
+     **/
+    struct [[eosio::table("config")]] config_row {
+        bool disabled_convert = false;
+        time_point_sec veteran_deadline = time_point_sec(1758038400); // 2025-09-17 00:00:00 UTC+8 (CST)
+    };
+    typedef eosio::singleton<"config"_n, config_row> config_table;
+
+>>>>>>> new-rams
     // on_ramstransfer: on ram transfer event
     [[eosio::on_notify("newrams.eos::transfer")]]
     void on_ramstransfer(const name& from, const name& to, const asset& quantity, const string& memo);
@@ -67,6 +83,13 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
     void claimlog(const name& caller, const name& veteran, const asset& quantity){
         require_auth(get_self());
     };
+<<<<<<< HEAD
+=======
+
+    [[eosio::action]]
+    void updatestatus(const bool disabled_convert, const time_point_sec veteran_deadline);
+
+>>>>>>> new-rams
 #ifdef DEBUG
     [[eosio::action]]
     void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
@@ -79,10 +102,24 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
             while (itr != _veteran.end()) {
                 itr = _veteran.erase(itr);
             }
+<<<<<<< HEAD
+=======
+        }else if (table_name == "veteranstats"_n) {
+            _state.remove();
+>>>>>>> new-rams
         } else {
             check(false, "honor.rms::cleartable: [table_name] unknown table to clear");
         }
     }
+<<<<<<< HEAD
+=======
+
+    [[eosio::action]]
+    void impvtstat(const veteran_stat_row& veteran_stat) {
+        require_auth(get_self());
+        _state.set(veteran_stat, get_self());
+    }
+>>>>>>> new-rams
 #endif
 
     using veteranlog_action = eosio::action_wrapper<"veteranlog"_n, &honor::veteranlog>;
@@ -91,4 +128,8 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
    private:
     veteran_index _veteran = veteran_index(_self, _self.value);
     veteran_stat_table _state = veteran_stat_table(_self, _self.value);
+<<<<<<< HEAD
+=======
+    config_table _config = config_table(_self, _self.value);
+>>>>>>> new-rams
 };

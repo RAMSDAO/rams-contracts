@@ -19,6 +19,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using contract::contract;
 
     const uint16_t RATIO_PRECISION = 10000;
+    const uint16_t VETERAN_RATIO = 2000;
 
     const name RAMX_EOS = "ramx.eos"_n;
     const name HONOR_RMS = "honor.rms"_n;
@@ -281,7 +282,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
      * - **authority**: `ramx.eos`
      *
      * @param owner - ram’s holding account.
-     * @param bytes - bytes of RAM to freezed.
+     * @param bytes - bytes of RAM to frozen.
      *
      */
     [[eosio::action]]
@@ -366,6 +367,11 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void distributlog(const extended_asset& total_reward, const extended_asset& veteran_reward, const extended_asset& reward_pool) {
+        require_auth(get_self());
+    }
+
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
@@ -398,6 +404,64 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
             _deposit.emplace(get_self(), [&](auto& row) { row = deposit; });
         }
     }
+
+    [[eosio::action]]
+    void imprenttoken(const vector<rent_token_row>& rent_tokens) {
+        require_auth(get_self());
+
+        // batch import data to old rent tokens
+        for (const auto& rent_token : rent_tokens) {
+            _rent_token.emplace(get_self(), [&](auto& row) { row = rent_token; });
+        }
+    }
+
+    [[eosio::action]]
+    void impborrow(const vector<borrow_row>& borrows) {
+        require_auth(get_self());
+
+        // batch import data to old borrows
+        for (const auto& borrow : borrows) {
+            _borrow.emplace(get_self(), [&](auto& row) { row = borrow; });
+        }
+    }
+
+    [[eosio::action]]
+    void impstat(const stat_row& stat) {
+        require_auth(get_self());
+
+        // batch import data to old stat
+        _stat.set(stat, get_self());
+    }
+
+    [[eosio::action]]
+    void imprents(const vector<rent_row>& rents, const name& scope) {
+        require_auth(get_self());
+
+        rent_table _rent(get_self(), scope.value);
+        // batch import data to old rents
+        for (const auto& rent : rents) {
+            _rent.emplace(get_self(), [&](auto& row) { row = rent; });
+        }
+    }
+
+    [[eosio::action]]
+    void imprewards(const vector<user_reward_row>& user_rewards, const uint64_t scope) {
+        require_auth(get_self());
+
+        // batch import data to old user rewards
+        user_reward_table _user_reward(get_self(), scope);
+        for (const auto& user_reward : user_rewards) {
+            _user_reward.emplace(get_self(), [&](auto& row) { row = user_reward; });
+        }
+    }
+
+    [[eosio::action]]
+    void impconfig(const config_row& config) {
+        require_auth(get_self());
+
+        // batch import data to old config
+        _config.set(config, get_self());
+    }
 #endif
 
     // action wrappers
@@ -415,6 +479,7 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     using transferlog_action = eosio::action_wrapper<"transferlog"_n, &bank::transferlog>;
     using freezelog_action = eosio::action_wrapper<"freezelog"_n, &bank::freezelog>;
     using unfreezelog_action = eosio::action_wrapper<"unfreezelog"_n, &bank::unfreezelog>;
+    using distributlog_action = eosio::action_wrapper<"distributlog"_n, &bank::distributlog>;
 
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
@@ -438,7 +503,8 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
 
     void token_change(const name& owner, const uint64_t deposit_bytes, const uint64_t pre_amount,
                       const uint64_t now_amount);
-    uint64_t get_reward(const extended_symbol& token, const uint32_t time_elapsed);
+    void token_change_batch(const vector<tuple<name, uint64_t, uint64_t>>& changes, const uint64_t deposit_bytes);
+    uint64_t get_reward(const extended_symbol& token);
 
     template <typename T>
     user_reward_table::const_iterator update_user_reward(const name& owner, const uint64_t& pre_amount,
@@ -448,4 +514,5 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     template <typename T, typename ITR>
     void update_reward(const time_point_sec& current_time, const uint64_t deposited_bytes, T& _reward_token,
                        const ITR& reward_itr);
+    void do_distribute_gasfund(const extended_asset& quantity);
 };
