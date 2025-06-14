@@ -22,6 +22,8 @@ RAM is not only the backbone of the EOS ecosystem, but also the key to innovatio
 | [ramdeposit11](https://bloks.io/account/ramdeposit11) | Ram Deposit Account        |
 | [strampoolram](https://bloks.io/account/strampoolram) | STRAM reward contract      |
 | [ramx.eos](https://bloks.io/account/ramx.eos)         | RAM pending order contract |
+| [honor.rms](https://bloks.io/account/honor.rms)       | Veteran contract      |
+| [token.rms](https://bloks.io/account/token.rms)       | V Token contract  |
 
 ## Quickstart
 
@@ -193,4 +195,69 @@ cleos get table ramx.eos ramx.eos orders --index 3 --key-type i128 -L 1000 -U 20
 
 # order (key: type + price)
 cleos get table ramx.eos ramx.eos orders --index 4 --key-type i128 -L 1000 -U 2000
+```
+
+### `honor.rms`
+
+#### Actions
+
+```bash
+# updatestatus @honor.rms
+$ cleos push action honor.rms updatestatus '{"disabled_convert": false, "veteran_deadline": "2025-09-17T00:00:00"}' -p honor.rms
+
+# transfer RAMS to honor.rms @user (memo: any)
+$ cleos push action newrams.eos transfer '{"from": "tester1", "to": "honor.rms", "quantity": "1000 RAMS", "memo": ""}' -p tester1
+
+# claim @account
+$ cleos push action honor.rms claim '{"account": "tester1"}' -p tester1
+```
+
+#### Viewing Table Information
+
+```bash
+cleos get table honor.rms honor.rms config
+cleos get table honor.rms honor.rms veterans -L tester1 -U tester1
+cleos get table honor.rms honor.rms veteranstats
+```
+
+### `token.rms`
+
+#### Actions
+
+```bash
+# setconfig @token.rms
+$ cleos push action token.rms setconfig '{"ram2v_enabled": true, "a2v_enabled": true}' -p token.rms
+
+# create @issuer
+$ cleos push action token.rms create '{"issuer": "token.rms", "maximum_supply": "21000000 V"}' -p token.rms
+
+# issue @issuer
+$ cleos push action token.rms issue '{"to": "tester1", "quantity": "1000 V", "memo": ""}' -p token.rms
+
+# transfer @from
+$ cleos push action token.rms transfer '{"from": "tester1", "to": "tester2", "quantity": "100 V", "memo": ""}' -p tester1
+
+# retire @token.rms
+$ cleos push action token.rms retire '{"quantity": "100 V", "memo": ""}' -p token.rms
+
+# open @ram_payer
+$ cleos push action token.rms open '{"owner": "tester1", "symbol": "0,V", "ram_payer": "tester1"}' -p tester1
+
+# close @owner
+$ cleos push action token.rms close '{"owner": "tester1", "symbol": "0,V"}' -p tester1
+
+# RAM to V conversion @user
+$ cleos push action eosio ramtransfer '{"from": "tester1", "to": "token.rms", "bytes": 1024, "memo": ""}' -p tester1
+
+# A token to V conversion @user
+$ cleos push action core.vaulta transfer '{"from": "tester1", "to": "token.rms", "quantity": "1.0000 A", "memo": ""}' -p tester1
+
+```
+
+#### Viewing Table Information
+
+```bash
+cleos get table token.rms V stat
+cleos get table token.rms tester1 accounts
+cleos get table token.rms token.rms config
 ```
