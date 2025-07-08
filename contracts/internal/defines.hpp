@@ -10,6 +10,7 @@ static constexpr name RAMFEES_EOS{"ramstramfees"_n};
 static constexpr name RAM_CONTAINER{"ramdeposit11"_n};
 static constexpr name BTC_XSAT{"btc.xsat"_n};
 static constexpr name GAS_FUND_CONTRACT = "gasfund.xsat"_n;
+static constexpr name UTXO_MANAGER_CONTRACT = "utxomng.xsat"_n;
 
 // ADDRESSES
 static constexpr name POOL_REWARD_CONTAINER{"stramreward1"_n};
