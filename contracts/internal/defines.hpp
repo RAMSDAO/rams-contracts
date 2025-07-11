@@ -13,6 +13,7 @@ static constexpr name GAS_FUND_CONTRACT = "gasfund.xsat"_n;
 static constexpr name UTXO_MANAGER_CONTRACT = "utxomng.xsat"_n;
 static constexpr name HONOR_RMS = "honor.rms"_n;
 static constexpr name RAMS_DAO = "ramsdao.eos"_n;
+static constexpr name TOKEN_RMS = "token.rms"_n;
 
 // ADDRESSES
 static constexpr name POOL_REWARD_CONTAINER{"stramreward1"_n};

@@ -31,12 +31,13 @@ void stake::init() {
     _config.set(config, get_self());
 }
 
-void stake::config(const uint64_t min_unstake_count, const uint64_t unstake_expire_seconds) {
+void stake::config(const uint64_t min_unstake_amount, const uint64_t unstake_expire_seconds, const uint64_t max_widthraw_rows) {
     require_auth(get_self());
 
     config_row config = _config.get_or_default();
-    config.min_unstake_count = min_unstake_count;
+    config.min_unstake_amount = min_unstake_amount;
     config.unstake_expire_seconds = unstake_expire_seconds;
+    config.max_widthraw_rows = max_widthraw_rows;
     _config.set(config, get_self());
 }
 
@@ -44,7 +45,7 @@ void stake::unstake(const name& account, const uint64_t bytes) {
     require_auth(account);
 
     config_row config = _config.get();
-    check(bytes >= config.min_unstake_count, "Unstake count must be greater than or equal to the minimum unstake count");
+    check(bytes >= config.min_unstake_amount, "Unstake count must be greater than or equal to the minimum unstake count");
 
     auto stake_itr = _stake.require_find(account.value, "Account not found in stake table");
 
@@ -91,7 +92,41 @@ void stake::restake(const name& account, const uint64_t id) {
     // todo reward calculation
 }
 
-[[eosio::action]]
+void stake::withdraw(const name& account) {
+    require_auth(account);
+
+    unstake_index _unstake(get_self(), account.value);
+    auto unstake_idx = _unstake.get_index<"byunstaking"_n>();
+    check(unstake_idx.begin() != unstake_idx.end(), "No unstaking records found for this account");
+    config_row config = _config.get();
+    uint64_t current_time_sec = current_time_point().sec_since_epoch();
+    uint64_t withdraw_amount = 0;
+    uint64_t process_count = 0;
+
+    auto unstake_itr = unstake_idx.begin();
+    while (unstake_itr != unstake_idx.end()) {
+        if (process_count >= config.max_widthraw_rows) {
+            break;  // Limit the number of processed unstake records
+        }
+        auto unstake_itr = unstake_idx.begin();
+        if (current_time_sec - unstake_itr->unstaking_time.sec_since_epoch() >= config.unstake_expire_seconds) {
+            withdraw_amount += unstake_itr->bytes;
+            unstake_itr = unstake_idx.erase(unstake_itr);
+        } else {
+            break;
+        }
+        process_count++;
+    }
+    check(withdraw_amount > 0, "No bytes available for withdrawal after unstaking");
+    auto stake_itr = _stake.require_find(account.value, "Account not found in stake table");
+    _stake.modify(stake_itr, get_self(), [&](auto& row) {
+        row.unstaking_bytes -= withdraw_amount;  // Decrement unstaking bytes
+    });
+
+    auto transfer_data = std::make_tuple(_self, account, asset(withdraw_amount, V_SYMBOL), string("stake V release"));
+    action(permission_level{get_self(), "active"_n}, TOKEN_RMS, "transfer"_n, transfer_data);
+}
+
 void stake::rams2v(const name& account, const uint64_t bytes) {
     require_auth(HONOR_RMS);
 

@@ -18,7 +18,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void init();
 
     [[eosio::action]]
-    void config(const uint64_t min_unstake_count, const uint64_t unstake_expire_seconds);
+    void config(const uint64_t min_unstake_amount, const uint64_t unstake_expire_seconds, const uint64_t max_widthraw_rows);
 
     [[eosio::action]]
     void unstake(const name& account, const uint64_t bytes);
@@ -27,13 +27,17 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void restake(const name& account, const uint64_t id);
 
     [[eosio::action]]
+    void withdraw(const name& account);
+
+    [[eosio::action]]
     void rams2v(const name& account, const uint64_t bytes);
 
    private:
     struct [[eosio::table("config")]] config_row {
         bool init_done = false;
-        uint64_t min_unstake_count = 1024;
+        uint64_t min_unstake_amount = 1024;
         uint64_t unstake_expire_seconds = 259200;  // 3 days
+        uint64_t max_widthraw_rows = 1000;  // Maximum number of rows to return in withdraw action
     };
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
@@ -52,8 +56,10 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         uint64_t bytes;
         time_point_sec unstaking_time;  // start time of unstaking
         uint64_t primary_key() const { return id; }
+        uint64_t by_unstaking_time() const { return unstaking_time.sec_since_epoch(); }
     };
-    typedef eosio::multi_index<"unstake"_n, unstake_row> unstake_index;
+    typedef eosio::multi_index<"unstake"_n, unstake_row, indexed_by<"byunstaking"_n, const_mem_fun<unstake_row, uint64_t, &unstake_row::by_unstaking_time>>>
+        unstake_index;
 
     // init table
     stake_index _stake = stake_index(get_self(), get_self().value);
