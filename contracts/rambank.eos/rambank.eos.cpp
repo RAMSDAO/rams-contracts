@@ -353,7 +353,7 @@ void bank::transfer(const name& from, const name& to, const uint64_t bytes, cons
         {to, to_deposit_itr->bytes - bytes, to_deposit_itr->bytes}
     };
     token_change_batch(changes, stat.deposited_bytes);
-    
+
     // log
     bank::transferlog_action transferlog(get_self(), {get_self(), "active"_n});
     transferlog.send(from, to, bytes, from_deposit_itr->bytes, to_deposit_itr->bytes, memo);
@@ -403,6 +403,7 @@ void bank::unfreeze(const name& owner, const uint64_t bytes) {
 
 [[eosio::action]]
 void bank::rams2ramx(const name& owner, const uint64_t bytes) {
+    check(false, "rambank.eos::rams2ramx: this action is closed, use stake.rms::rams2v action instead");
     require_auth(HONOR_RMS);
 
     check(bytes > 0, "rambank.eos::rams2ramx: bytes must be greater than 0");

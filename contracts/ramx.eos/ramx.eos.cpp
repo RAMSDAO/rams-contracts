@@ -1,6 +1,7 @@
-#include <ramx.eos/ramx.eos.hpp>
-#include <rambank.eos/rambank.eos.hpp>
 #include <eosio.token/eosio.token.hpp>
+#include <rambank.eos/rambank.eos.hpp>
+#include <ramx.eos/ramx.eos.hpp>
+
 #include "../internal/utils.hpp"
 
 [[eosio::action]]
@@ -29,8 +30,7 @@ void ramx::tradeconfig(const asset& min_trade_amount, const uint64_t min_trade_b
 }
 
 [[eosio::action]]
-void ramx::statusconfig(const bool disabled_trade, const bool disabled_pending_order,
-                        const bool disabled_cancel_order) {
+void ramx::statusconfig(const bool disabled_trade, const bool disabled_pending_order, const bool disabled_cancel_order) {
     require_auth(get_self());
 
     auto config = _config.get_or_default();
@@ -55,10 +55,8 @@ void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t byt
 
     auto quantity = asset(amount, EOS);
 
-    check(bytes >= config.min_trade_bytes,
-          "ramx.eos::sellorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
-    check(quantity >= config.min_trade_amount,
-          "ramx.eos::sellorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
+    check(bytes >= config.min_trade_bytes, "ramx.eos::sellorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
+    check(quantity >= config.min_trade_amount, "ramx.eos::sellorder: (price * bytes) must be greater than " + config.min_trade_amount.to_string());
 
     // freeze
     bank::freeze_action freeze(RAM_BANK_CONTRACT, {get_self(), "active"_n});
@@ -85,8 +83,7 @@ void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t byt
 
     // log
     ramx::statlog_action statlog(get_self(), {get_self(), "active"_n});
-    statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes,
-                 stat.trade_quantity, stat.num_trade_orders);
+    statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
 
     ramx::orderlog_action orderlog(get_self(), {get_self(), "active"_n});
     orderlog.send(order_id, ORDER_TYPE_SELL, owner, price, bytes, quantity);
@@ -94,7 +91,9 @@ void ramx::sellorder(const name& owner, const uint64_t price, const uint64_t byt
 
 [[eosio::action]]
 vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> order_ids) {
-    require_auth(owner);
+    if (!has_auth(_self)) {
+        require_auth(owner);
+    }
 
     auto config = _config.get();
 
@@ -150,12 +149,10 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
     // log
     ramx::statlog_action statlog(get_self(), {get_self(), "active"_n});
     if (unfreeze_bytes > 0) {
-        statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes,
-                     stat.trade_quantity, stat.num_trade_orders);
+        statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
     }
     if (refund_quantity.amount > 0) {
-        statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes,
-                     stat.trade_quantity, stat.num_trade_orders);
+        statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
     }
 
     ramx::celorderlog_action celorderlog(get_self(), {get_self(), "active"_n});
@@ -164,8 +161,18 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
     return canceled_order_ids;
 }
 
-[[eosio::action]]
-ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_ids) {
+void ramx::cancelallord() {
+    require_auth(_self);
+
+    auto config = _config.get();
+    check(!config.disabled_cancel_order, "ramx.eos::cancelallord: cancel order has been suspended");
+    permission_level self_active = permission_level{get_self(), "active"_n};
+    for (auto itr = _order.begin(); itr != _order.end();) {
+        action(self_active, get_self(), "cancelorder"_n, std::make_tuple(itr->owner, vector<uint64_t>{itr->id})).send();
+    }
+}
+
+[[eosio::action]] ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_ids) {
     require_auth(owner);
 
     check(order_ids.size() > 0, "ramx.eos::sell: order_ids cannot be empty");
@@ -233,12 +240,10 @@ ramx::trade_result ramx::sell(const name& owner, const vector<uint64_t>& order_i
 
     // log
     ramx::statlog_action statlog(get_self(), {get_self(), "active"_n});
-    statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes,
-                 stat.trade_quantity, stat.num_trade_orders);
+    statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
 
     ramx::tradelog_action tradelog(get_self(), {get_self(), "active"_n});
-    tradelog.send(ORDER_TYPE_SELL, owner, total_quantity, asset{0, EOS}, total_bytes, total_fees, trade_order_ids,
-                  fee_list);
+    tradelog.send(ORDER_TYPE_SELL, owner, total_quantity, asset{0, EOS}, total_bytes, total_fees, trade_order_ids, fee_list);
 
     trade_result result;
     result.bytes = total_bytes;
@@ -269,17 +274,14 @@ void ramx::on_transfer(const name& from, const name& to, const asset& quantity, 
 void ramx::do_buyorder(const name& owner, const uint64_t price, const extended_asset& ext_in) {
     auto config = _config.get();
 
-    check(ext_in.quantity.amount <= MAX_TRADE_VOLUME,
-          "ramx.eos::buyorder: trading volume cannot exceed 10,000,000 EOS");
+    check(ext_in.quantity.amount <= MAX_TRADE_VOLUME, "ramx.eos::buyorder: trading volume cannot exceed 10,000,000 EOS");
     check(price > 0 && price <= MAX_PRICE, "ramx.eos::buyorder: price must be greater than 0 and less than 10^8");
 
     auto bytes = uint128_t(ext_in.quantity.amount) * PRICE_PRECISION / price;
     check(!config.disabled_pending_order, "ramx.eos::buyorder: pending order has been suspended");
-    check(ext_in.quantity >= config.min_trade_amount,
-          "ramx.eos::buyorder: quantity must be greater than " + config.min_trade_amount.to_string());
+    check(ext_in.quantity >= config.min_trade_amount, "ramx.eos::buyorder: quantity must be greater than " + config.min_trade_amount.to_string());
     check(bytes > 0, "ramx.eos::buyorder: bytes must be greater than 0");
-    check(bytes >= config.min_trade_bytes,
-          "ramx.eos::buyorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
+    check(bytes >= config.min_trade_bytes, "ramx.eos::buyorder: bytes must be greater than " + std::to_string(config.min_trade_bytes));
 
     // order
     auto order_id = next_order_id();
@@ -302,8 +304,7 @@ void ramx::do_buyorder(const name& owner, const uint64_t price, const extended_a
 
     // log
     ramx::statlog_action statlog(get_self(), {get_self(), "active"_n});
-    statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes,
-                 stat.trade_quantity, stat.num_trade_orders);
+    statlog.send(ORDER_TYPE_BUY, stat.buy_bytes, stat.buy_quantity, stat.num_buy_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
 
     ramx::orderlog_action orderlog(get_self(), {get_self(), "active"_n});
     orderlog.send(order_id, ORDER_TYPE_BUY, owner, price, bytes, ext_in.quantity);
@@ -327,8 +328,7 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
         auto order_itr = _order.find(order_id);
 
         // The order does not exist, the type does not match, and the balance is insufficient to skip the transaction.
-        if (order_itr == _order.end() || order_itr->type != ORDER_TYPE_SELL || remain_quantity < order_itr->quantity)
-            continue;
+        if (order_itr == _order.end() || order_itr->type != ORDER_TYPE_SELL || remain_quantity < order_itr->quantity) continue;
 
         // fees
         const auto fees = order_itr->quantity * config.fee_ratio / RATIO_PRECISION;
@@ -382,12 +382,10 @@ void ramx::do_buy(const name& owner, const vector<uint64_t>& order_ids, const ex
 
     // log
     ramx::statlog_action statlog(get_self(), {get_self(), "active"_n});
-    statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes,
-                 stat.trade_quantity, stat.num_trade_orders);
+    statlog.send(ORDER_TYPE_SELL, stat.sell_bytes, stat.sell_quantity, stat.num_sell_orders, stat.trade_bytes, stat.trade_quantity, stat.num_trade_orders);
 
     ramx::tradelog_action tradelog(get_self(), {get_self(), "active"_n});
-    tradelog.send(ORDER_TYPE_BUY, owner, total_quantity, remain_quantity, total_bytes, total_fees, trade_order_ids,
-                  fee_list);
+    tradelog.send(ORDER_TYPE_BUY, owner, total_quantity, remain_quantity, total_bytes, total_fees, trade_order_ids, fee_list);
 }
 
 // Memo schemas
@@ -412,7 +410,7 @@ ramx::memo_schema ramx::parse_memo(const string& memo) {
         result.price = std::stoll(parts[1]);
     } else if (result.action == "buy"_n) {
         check(parts.size() == 2, ERROR_INVALID_MEMO);
-        //order_ids
+        // order_ids
         result.order_ids = parse_memo_order_ids(parts[1]);
     }
     return result;
