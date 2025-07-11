@@ -30,7 +30,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void withdraw(const name& account);
 
     [[eosio::action]]
-    void rams2v(const name& account, const uint64_t bytes);
+    void rams2v(const name& account, const uint64_t amount);
 
    private:
     struct [[eosio::table("config")]] config_row {
