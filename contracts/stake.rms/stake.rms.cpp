@@ -15,10 +15,9 @@ void stake::init() {
             check(false, "Cannot initialize stake with frozen deposits");
         }
 
+        // Skip accounts with no bytes
         if (itr->bytes == 0) {
-            if (!itr->frozen_bytes.has_value() || itr->frozen_bytes.value() == 0) {
-                continue;
-            }
+            continue;
         }
         _stake.emplace(get_self(), [&](auto& row) {
             row.account = itr->account;
@@ -26,6 +25,66 @@ void stake::init() {
             row.unstaking_amount = 0;  // Initialize unstaking amount to 0
         });
     }
+
+    // Initialize the rent token table from rambank
+    bank::rent_token_table _bank_rent_token = bank::rent_token_table(RAMBANK_EOS, RAMBANK_EOS.value);
+    for (auto itr = _bank_rent_token.begin(); itr != _bank_rent_token.end(); ++itr) {
+        // Migrate user rewards for this rent token
+        bank::user_reward_table _user_reward = bank::user_reward_table(RAMBANK_EOS, itr->id);
+        reward_index _reward(get_self(), itr->id);
+        
+        for (auto user_reward_itr = _user_reward.begin(); user_reward_itr != _user_reward.end(); ++user_reward_itr) {
+            // Save user_reward to reward table
+            _reward.emplace(get_self(), [&](auto& row) {
+                row.account = user_reward_itr->owner;
+                row.token = itr->token;
+                row.debt = user_reward_itr->debt;
+                row.unclaimed = user_reward_itr->unclaimed;
+                row.claimed = user_reward_itr->claimed;
+            });
+        }
+
+        // save rent token to rent token table
+        rent_token_index _rent_token(get_self(), itr->id);
+        _rent_token.emplace(get_self(), [&](auto& row) {
+            row.id = itr->id;
+            row.token = itr->token;
+            row.total_rent_received = itr->total_rent_received;
+            row.acc_per_share = itr->acc_per_share;
+            row.last_reward_time = itr->last_reward_time;
+            row.total_reward = itr->total_reward;
+            row.reward_balance = itr->reward_balance;
+            row.enabled = itr->enabled;
+        });
+    }
+
+    // Migrate borrow data from rambank
+    bank::borrow_table _bank_borrow = bank::borrow_table(RAMBANK_EOS, RAMBANK_EOS.value);
+    uint64_t processed_borrows = 0;
+    uint64_t total_borrow_amount = 0;
+    
+    for (auto itr = _bank_borrow.begin(); itr != _bank_borrow.end(); ++itr) {
+        // Validate account
+        check(is_account(itr->account), "Invalid account name in borrow table");
+        
+        // Migrate rent data for this borrower
+        bank::rent_table _bank_rent = bank::rent_table(RAMBANK_EOS, itr->account.value);
+        rent_index _rent(get_self(), itr->account.value);
+
+        for (auto rent_itr = _bank_rent.begin(); rent_itr != _bank_rent.end(); ++rent_itr) {
+            _rent.emplace(get_self(), [&](auto& row) {
+                row.id = rent_itr->id;
+                row.total_rent_received = rent_itr->total_rent_received;
+            });
+        }
+
+        // save borrow to borrow table
+        _borrow.emplace(get_self(), [&](auto& row) {
+            row.account = itr->account;
+            row.amount = itr->bytes;
+        });
+    }
+
     // Set the config values
     config.init_done = true;
     _config.set(config, get_self());

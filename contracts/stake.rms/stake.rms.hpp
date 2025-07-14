@@ -33,6 +33,10 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void rams2v(const name& account, const uint64_t amount);
 
    private:
+    static uint128_t get_extended_symbol_key(extended_symbol symbol) {
+        return (uint128_t{symbol.get_contract().value} << 64) | symbol.get_symbol().code().raw();
+    }
+
     struct [[eosio::table("config")]] config_row {
         bool init_done = false;
         uint64_t min_unstake_amount = 1024;
@@ -42,12 +46,34 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
 
+    /**
+     * @brief 
+     * 
+     *
+     * @scope get_self()
+     *
+     * @field stake_amount - total stake amount
+     * @field used_amount - total used amount
+     *
+     **/
     struct [[eosio::table("stat")]] stat_row {
         uint64_t stake_amount = 137438953472;
+        uint64_t used_amount = 137438953472;
     };
     typedef eosio::singleton<"stat"_n, stat_row> stat_index;
     stat_index _stat = stat_index(get_self(), get_self().value);
 
+    /**
+     * @brief 
+     * 
+     *
+     * @scope get_self()
+     *
+     * @field account - the account that staked
+     * @field amount - the amount of V staked.
+     * @field unstaking_amount - the amount of V unstaking.
+     * 
+     */
     struct [[eosio::table]] stake_row {
         name account;
         uint64_t amount;
@@ -57,6 +83,17 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     };
     typedef eosio::multi_index<"stake"_n, stake_row> stake_index;
 
+    /**
+     * @brief 
+     * 
+     *
+     * @scope get_self()
+     *
+     * @field id - primary key
+     * @field amount - the amount of V unstaking.
+     * @field unstaking_time - the time of unstaking.
+     * 
+     */
     struct [[eosio::table]] unstake_row {
         uint64_t id;
         uint64_t amount;
@@ -67,6 +104,85 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     typedef eosio::multi_index<"unstake"_n, unstake_row, indexed_by<"byunstaking"_n, const_mem_fun<unstake_row, uint64_t, &unstake_row::by_unstaking_time>>>
         unstake_index;
 
+    /**
+     * @brief supported rent currencies table.
+     * @scope get_self()
+     *
+     * @field id - primary key
+     * @field token - rent currencies
+     * @field total_rent_received - total rent received
+     *
+     **/
+    struct [[eosio::table]] rent_token_row {
+        uint64_t id;
+        extended_symbol token;
+        uint64_t total_rent_received;
+        uint128_t acc_per_share;
+        time_point_sec last_reward_time;
+        uint64_t total_reward;
+        uint64_t reward_balance;
+        bool enabled;
+        uint64_t primary_key() const { return id; }
+        uint128_t by_token() const { return get_extended_symbol_key(token); }
+    };
+
+    typedef eosio::multi_index<
+        "renttoken"_n, rent_token_row,
+        eosio::indexed_by<"bytoken"_n, const_mem_fun<rent_token_row, uint128_t, &rent_token_row::by_token>>>
+        rent_token_index;
+
+    /**
+     * @brief rent table.
+     * @scope owner
+     *
+     * @field id - primary key
+     * @field total_rent_received - total rent received
+     *
+     **/
+    struct [[eosio::table]] rent_row {
+        uint64_t id;
+        extended_asset total_rent_received;
+        uint64_t primary_key() const { return id; }
+    };
+    typedef eosio::multi_index<"rent"_n, rent_row> rent_index;
+
+    /**
+     * @brief RAM borrowed by users table.
+     * @scope get_self()
+     *
+     * @field account - the account that borrowed RAM
+     * @field amount - the amount of V borrowed.
+     *
+     **/
+     struct [[eosio::table]] borrow_row {
+        name account;
+        uint64_t amount;
+        uint64_t primary_key() const { return account.value; }
+    };
+    typedef eosio::multi_index<"borrow"_n, borrow_row> borrow_index;
+
+    /**
+     * @brief reward table.
+     * @scope renttoken
+     *
+     * @field account - primary key
+     * @field token - reward token
+     * @field debt - amount of requested debt
+     * @field unclaimed - amount of unclaimed rewards
+     * @field claimed - amount of claimed rewards
+     *
+     */
+    struct [[eosio::table]] reward_row {
+        name account;
+        extended_symbol token;
+        uint64_t debt;
+        uint64_t unclaimed;
+        uint64_t claimed;
+        uint64_t primary_key() const { return account.value; }
+    };
+    typedef eosio::multi_index<"reward"_n, reward_row> reward_index;
+
     // init table
     stake_index _stake = stake_index(get_self(), get_self().value);
+    borrow_index _borrow = borrow_index(get_self(), get_self().value);
 };
