@@ -37,6 +37,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+    [[eosio::action]]
+    void claim(const name& account);
+
     // logs
     [[eosio::action]]
     void distributlog(const name& from, const extended_asset& quantity){
@@ -207,7 +210,8 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount);
 
     template <typename T>
-    reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward, const extended_symbol& token);
+    reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward, 
+                                                const rent_token_index::const_iterator& rent_token_itr);
 
     void distribute_gasfund(const name& from, const extended_asset& quantity);
     void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
