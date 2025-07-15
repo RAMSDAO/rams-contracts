@@ -1,18 +1,21 @@
 #include <rambank.eos/rambank.eos.hpp>
+#include <eosio.token/eosio.token.hpp>
 #include <stake.rms/stake.rms.hpp>
+#include "../internal/utils.hpp"
+#include "../internal/safemath.hpp"
 
 void stake::init() {
     require_auth(get_self());
 
     // Initialize the config table with default values
     config_row config = _config.get_or_default();
-    check(!config.init_done, "Stake has already been initialized");
+    check(!config.init_done, "stake.rms::init: stake has already been initialized");
 
     // Initialize the stake table
     bank::deposit_table _deposit = bank::deposit_table(RAMBANK_EOS, RAMBANK_EOS.value);
     for (auto itr = _deposit.begin(); itr != _deposit.end();) {
         if (itr->frozen_bytes.has_value() && itr->frozen_bytes.value() > 0) {
-            check(false, "Cannot initialize stake with frozen deposits");
+            check(false, "stake.rms::init: cannot initialize stake with frozen deposits");
         }
 
         // Skip accounts with no bytes
@@ -65,7 +68,7 @@ void stake::init() {
     
     for (auto itr = _bank_borrow.begin(); itr != _bank_borrow.end(); ++itr) {
         // Validate account
-        check(is_account(itr->account), "Invalid account name in borrow table");
+        check(is_account(itr->account), "stake.rms::init: invalid account name in borrow table");
         
         // Migrate rent data for this borrower
         bank::rent_table _bank_rent = bank::rent_table(RAMBANK_EOS, itr->account.value);
@@ -104,12 +107,12 @@ void stake::unstake(const name& account, const uint64_t amount) {
     require_auth(account);
 
     config_row config = _config.get();
-    check(amount >= config.min_unstake_amount, "Unstake count must be greater than or equal to the minimum unstake count");
+    check(amount >= config.min_unstake_amount, "stake.rms::unstake: unstake count must be greater than or equal to the minimum unstake count");
 
-    auto stake_itr = _stake.require_find(account.value, "Account not found in stake table");
+    auto stake_itr = _stake.require_find(account.value, "stake.rms::unstake: account not found in stake table");
 
     // Check if the account has enough amount to unstake
-    check(stake_itr->amount >= amount, "Insufficient amount to unstake");
+    check(stake_itr->amount >= amount, "stake.rms::unstake: Insufficient amount to unstake");
 
     // Update the stake record
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
@@ -124,6 +127,7 @@ void stake::unstake(const name& account, const uint64_t amount) {
         row.amount = amount;
         row.unstaking_time = current_time_point();  // Set the current time as the start of unstaking
     });
+
     // todo reward calculation
 }
 
@@ -131,19 +135,19 @@ void stake::restake(const name& account, const uint64_t id) {
     require_auth(account);
 
     unstake_index _unstake(get_self(), account.value);
-    auto unstake_itr = _unstake.require_find(id, "Unstake ID not found");
+    auto unstake_itr = _unstake.require_find(id, "stake.rms::restake: unstake id not found");
 
     config_row config = _config.get();
     // Check if the unstaking period has expired
     time_point_sec current_time = current_time_point();
     check(current_time.sec_since_epoch() - unstake_itr->unstaking_time.sec_since_epoch() < config.unstake_expire_seconds,
-          "Under unstaking has reached its expiry; it cannot be directly restaked");
+          "stake.rms::restake: Under unstaking has reached its expiry; it cannot be directly restaked");
 
     // Remove the unstake entry
     _unstake.erase(unstake_itr);
 
     // Update the stake record
-    auto stake_itr = _stake.require_find(account.value, "Account not found in stake table");
+    auto stake_itr = _stake.require_find(account.value, "stake.rms::restake: account not found in stake table");
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
         row.unstaking_amount -= unstake_itr->amount;  // Decrement unstaking amount
         row.amount += unstake_itr->amount;            // Add amount back to the stake
@@ -156,7 +160,7 @@ void stake::withdraw(const name& account) {
 
     unstake_index _unstake(get_self(), account.value);
     auto unstake_idx = _unstake.get_index<"byunstaking"_n>();
-    check(unstake_idx.begin() != unstake_idx.end(), "No unstaking records found for this account");
+    check(unstake_idx.begin() != unstake_idx.end(), "stake.rms::withdraw: No unstaking records found for this account");
     config_row config = _config.get();
     uint64_t current_time_sec = current_time_point().sec_since_epoch();
     uint64_t withdraw_amount = 0;
@@ -176,8 +180,8 @@ void stake::withdraw(const name& account) {
         }
         process_count++;
     }
-    check(withdraw_amount > 0, "No amount available for withdrawal after unstaking");
-    auto stake_itr = _stake.require_find(account.value, "Account not found in stake table");
+    check(withdraw_amount > 0, "stake.rms::withdraw: No amount available for withdrawal after unstaking");
+    auto stake_itr = _stake.require_find(account.value, "stake.rms::withdraw: account not found in stake table");
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
         row.unstaking_amount -= withdraw_amount;  // Decrement unstaking amount
     });
@@ -189,7 +193,7 @@ void stake::withdraw(const name& account) {
 void stake::rams2v(const name& account, const uint64_t amount) {
     require_auth(HONOR_RMS);
 
-    check(amount > 0, "amount must be greater than 0");
+    check(amount > 0, "stake.rms::rams2v: amount must be greater than 0");
     auto rams_dao_itr = _stake.require_find(RAMS_DAO.value, "stake.rms::rams2v: ramsdao.eos account does not exists");
     check(rams_dao_itr->amount >= amount, "stake.rms::rams2v: ramsdao.eos account does not have enough amount");
     auto account_itr = _stake.find(account.value);
@@ -205,4 +209,128 @@ void stake::rams2v(const name& account, const uint64_t amount) {
     _stake.modify(rams_dao_itr, same_payer, [&](auto& row) { row.amount -= amount; });
 
     // todo reward calculation
+}
+
+void stake::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
+    // ignore transfers
+    if (to != get_self() || from == POOL_REWARD_CONTAINER) return;
+
+    const name contract = get_first_receiver();
+    extended_asset ext_in = {quantity, contract};
+
+    // distribute gasfund
+    if (from == GAS_FUND_CONTRACT && contract == BTC_XSAT && quantity.symbol == BTC_SYMBOL) {
+        distribute_gasfund(from, ext_in);
+        return;
+    }
+
+    const std::vector<string> parts = rams::utils::split(memo, ",");
+    check(parts.size() == 2 && parts[0] == "rent", "stake.rms::on_transfer: invalid memo");
+    auto borrower = rams::utils::parse_name(parts[1]);
+    process_rent_payment(from, borrower, ext_in);
+}
+
+void stake::distribute_gasfund(const name& from, const extended_asset& quantity) {
+    auto config = _config.get_or_default();
+    // calcuate veteran and reward
+    auto veteran_quantity = quantity * config.veteran_ratio / RATIO_PRECISION;
+    auto reward_quantity = quantity - veteran_quantity;
+
+    // transfer to honor.rms
+    if(veteran_quantity.quantity.amount > 0) {
+        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
+    }
+
+    // deposit rent
+    if(reward_quantity.quantity.amount > 0) {
+
+        process_rent_payment(from, UTXO_MANAGER_CONTRACT, reward_quantity);
+    }
+
+    bank::distributlog_action distributlog(get_self(), {get_self(), "active"_n});
+    distributlog.send(quantity, veteran_quantity, reward_quantity);
+}
+
+void stake::process_rent_payment(const name& owner, const name& borrower, const extended_asset& ext_in) {
+    check(ext_in.quantity.amount > 0, "stake.rms::process_rent_payment: cannot deposit negative");
+    // check support rent token
+    auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
+    auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(ext_in.get_extended_symbol()));
+    check(rent_token_itr != rent_token_idx.end() && rent_token_itr->enabled, "stake.rms::process_rent_payment: unsupported rent token");
+
+    auto borrow_itr = _borrow.find(borrower.value);
+    check(borrow_itr != _borrow.end() && borrow_itr->amount > 0, "stake.rms::process_rent_payment: no lending, no rent transferred");
+
+    // update rent token
+    rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {
+        row.total_rent_received += ext_in.quantity.amount;
+    });
+
+    // update rent
+    rent_index _rent(get_self(), borrower.value);
+    auto rent_itr = _rent.find(rent_token_itr->id);
+    if (rent_itr == _rent.end()) {
+        _rent.emplace(get_self(), [&](auto& row) {
+            row.id = rent_token_itr->id;
+            row.total_rent_received = ext_in;
+        });
+    } else {
+        _rent.modify(rent_itr, same_payer, [&](auto& row) {
+            row.total_rent_received += ext_in;
+        });
+    }
+    // update reward
+    auto stat = _stat.get_or_default();
+    update_reward_acc_per_share(stat.stake_amount, rent_token_idx, rent_token_itr, ext_in.quantity.amount);
+}
+
+template <typename T, typename ITR>
+void stake::update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount) {
+    if (reward_amount == 0) {
+        return;
+    }
+
+    uint128_t incr_acc_per_share = safemath128::div(safemath128::mul(reward_amount, PRECISION_FACTOR), total_stake_amount);
+    _reward_token.modify(reward_itr, same_payer, [&](auto& row) {
+        row.acc_per_share += incr_acc_per_share;
+        row.last_reward_time = current_time_point();
+        row.total_reward += reward_amount;
+        row.reward_balance += reward_amount;
+    });
+}
+
+template <typename T>
+stake::reward_index::const_iterator stake::update_reward(const name& account, const uint64_t& pre_amount,
+                                                                 const uint64_t& now_amount, T& _reward, const extended_symbol& token) {
+    auto reward_itr = _reward.require_find(account.value, "stake.rms::update_reward: account not found in reward table");
+    uint64_t per_debt = 0;
+    if (reward_itr != _reward.end()) {
+        per_debt = reward_itr->debt;
+    }
+
+    uint128_t reward = safemath128::mul(pre_amount, reward_itr->acc_per_share) / PRECISION_FACTOR - per_debt;
+    uint128_t now_debt = safemath128::mul(now_amount, reward_itr->acc_per_share) / PRECISION_FACTOR;
+    check(now_debt <= (uint64_t)-1LL, "stake.rms::update_reward: debt overflow");
+
+    if (reward_itr == _reward.end()) {
+        reward_itr = _reward.emplace(get_self(), [&](auto& row) {
+            row.account = account;
+            row.token = token;
+            row.unclaimed = reward;
+            row.debt = static_cast<uint64_t>(now_debt);
+        });
+    } else {
+        check(reward_itr->token == token, "stake.rms::update_reward: token mismatch");
+        _reward.modify(reward_itr, same_payer, [&](auto& row) {
+            row.unclaimed += reward;
+            row.debt = static_cast<uint64_t>(now_debt);
+        });
+    }
+
+    return reward_itr;
+}
+
+void stake::token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo) {
+    eosio::token::transfer_action transfer(value.contract, {from, "active"_n});
+    transfer.send(from, to, value.quantity, memo);
 }

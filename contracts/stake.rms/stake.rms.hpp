@@ -14,6 +14,8 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
    public:
     using contract::contract;
 
+    const uint16_t RATIO_PRECISION = 10000;
+
     [[eosio::action]]
     void init();
 
@@ -32,6 +34,16 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     [[eosio::action]]
     void rams2v(const name& account, const uint64_t amount);
 
+    [[eosio::on_notify("*::transfer")]]
+    void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
+
+    // logs
+    [[eosio::action]]
+    void distributlog(const name& from, const extended_asset& quantity){
+        require_auth(get_self());
+    }
+
+   using distributlog_action = eosio::action_wrapper<"distributlog"_n, &stake::distributlog>;
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
         return (uint128_t{symbol.get_contract().value} << 64) | symbol.get_symbol().code().raw();
@@ -42,6 +54,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         uint64_t min_unstake_amount = 1024;
         uint64_t unstake_expire_seconds = 259200;  // 3 days
         uint64_t max_widthraw_rows = 1000;         // Maximum number of rows to return in withdraw action
+        uint16_t veteran_ratio = 2000;             // 20%
     };
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
@@ -185,4 +198,17 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     // init table
     stake_index _stake = stake_index(get_self(), get_self().value);
     borrow_index _borrow = borrow_index(get_self(), get_self().value);
+    rent_token_index _rent_token = rent_token_index(get_self(), get_self().value);
+
+    // private methods
+    void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
+
+    template <typename T, typename ITR>
+    void update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount);
+
+    template <typename T>
+    reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward, const extended_symbol& token);
+
+    void distribute_gasfund(const name& from, const extended_asset& quantity);
+    void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
 };
