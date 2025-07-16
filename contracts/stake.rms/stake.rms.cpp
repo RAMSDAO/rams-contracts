@@ -129,10 +129,7 @@ void stake::unstake(const name& account, const uint64_t amount) {
     });
 
     // Update reward
-    for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
-        reward_index _reward(get_self(), itr->id);
-        update_reward(account, stake_itr->amount, stake_itr->amount, _reward, itr);
-    }
+    batch_update_reward(account, stake_itr->amount + amount, stake_itr->amount);
 
     // TODO: send log action
 }
@@ -160,10 +157,7 @@ void stake::restake(const name& account, const uint64_t id) {
     });
 
     // Update reward
-    for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
-        reward_index _reward(get_self(), itr->id);
-        update_reward(account, stake_itr->amount, stake_itr->amount, _reward, itr);
-    }
+    batch_update_reward(account, stake_itr->amount - unstake_itr->amount, stake_itr->amount);
 
     // TODO: send log action
 }
@@ -222,6 +216,8 @@ void stake::rams2v(const name& account, const uint64_t amount) {
     _stake.modify(rams_dao_itr, same_payer, [&](auto& row) { row.amount -= amount; });
 
     // todo reward calculation
+    batch_update_reward(account, account_itr->amount - amount, account_itr->amount);
+    batch_update_reward(RAMS_DAO, rams_dao_itr->amount + amount, rams_dao_itr->amount);
 
     // TODO: send log action twice
 }
@@ -347,6 +343,14 @@ void stake::update_reward_acc_per_share(const uint64_t total_stake_amount, T& _r
         row.total_reward += reward_amount;
         row.reward_balance += reward_amount;
     });
+}
+
+template <typename T>
+void stake::batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount, T& _reward) {
+    for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
+        reward_index _reward(get_self(), itr->id);
+        update_reward(account, pre_amount, now_amount, _reward, itr);
+    }
 }
 
 template <typename T>
