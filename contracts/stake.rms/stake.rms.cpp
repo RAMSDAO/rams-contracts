@@ -103,6 +103,28 @@ void stake::config(const uint64_t min_unstake_amount, const uint64_t unstake_exp
     _config.set(config, get_self());
 }
 
+void stake::on_stake(const name& account, const asset& quantity) {
+    require_auth(account);
+
+    check(quantity.symbol == V_SYMBOL, "stake.rms::stake: invalid symbol");
+    check(quantity.amount > 0, "stake.rms::stake: amount must be greater than 0");
+
+    auto stake_itr = _stake.find(account.value);
+    if (stake_itr == _stake.end()) {
+        stake_itr = _stake.emplace(get_self(), [&](auto& row) {
+            row.account = account;
+            row.amount = quantity.amount;
+            row.unstaking_amount = 0;
+        });
+    } else {
+        _stake.modify(stake_itr, get_self(), [&](auto& row) {
+            row.amount += quantity.amount;
+        });
+    }
+
+    batch_update_reward(account, stake_itr->amount - quantity.amount, stake_itr->amount);
+}
+
 void stake::unstake(const name& account, const uint64_t amount) {
     require_auth(account);
 
@@ -227,6 +249,19 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
     if (to != get_self() || from == POOL_REWARD_CONTAINER) return;
 
     const name contract = get_first_receiver();
+
+    // on stake
+    if (contract == TOKEN_RMS && quantity.symbol == V_SYMBOL) {
+
+        if (memo ==  "ignore"){
+
+            return;
+        }
+
+        on_stake(from, quantity);
+        return;
+    }
+
     extended_asset ext_in = {quantity, contract};
 
     // distribute gasfund
@@ -345,8 +380,7 @@ void stake::update_reward_acc_per_share(const uint64_t total_stake_amount, T& _r
     });
 }
 
-template <typename T>
-void stake::batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount, T& _reward) {
+void stake::batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount) {
     for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
         reward_index _reward(get_self(), itr->id);
         update_reward(account, pre_amount, now_amount, _reward, itr);

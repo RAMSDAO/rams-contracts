@@ -204,6 +204,8 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     rent_token_index _rent_token = rent_token_index(get_self(), get_self().value);
 
     // private methods
+    void on_stake(const name& account, const asset& quantity);
+    void batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount);
     void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
 
     template <typename T, typename ITR>
