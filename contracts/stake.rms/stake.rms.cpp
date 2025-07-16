@@ -109,6 +109,10 @@ void stake::on_stake(const name& account, const asset& quantity) {
     check(quantity.symbol == V_SYMBOL, "stake.rms::stake: invalid symbol");
     check(quantity.amount > 0, "stake.rms::stake: amount must be greater than 0");
 
+    auto config = _config.get_or_default();
+    auto stat = _stat.get_or_default();
+    check(stat.stake_amount + quantity.amount <= config.max_stake_amount, "stake.rms::stake: max stake amount reached");
+
     auto stake_itr = _stake.find(account.value);
     if (stake_itr == _stake.end()) {
         stake_itr = _stake.emplace(get_self(), [&](auto& row) {
@@ -152,8 +156,6 @@ void stake::unstake(const name& account, const uint64_t amount) {
 
     // Update reward
     batch_update_reward(account, stake_itr->amount + amount, stake_itr->amount);
-
-    // TODO: send log action
 }
 
 void stake::restake(const name& account, const uint64_t id) {
@@ -180,8 +182,6 @@ void stake::restake(const name& account, const uint64_t id) {
 
     // Update reward
     batch_update_reward(account, stake_itr->amount - unstake_itr->amount, stake_itr->amount);
-
-    // TODO: send log action
 }
 
 void stake::withdraw(const name& account) {
@@ -240,8 +240,6 @@ void stake::rams2v(const name& account, const uint64_t amount) {
     // todo reward calculation
     batch_update_reward(account, account_itr->amount - amount, account_itr->amount);
     batch_update_reward(RAMS_DAO, rams_dao_itr->amount + amount, rams_dao_itr->amount);
-
-    // TODO: send log action twice
 }
 
 void stake::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -325,6 +323,8 @@ void stake::claim(const name& account) {
             });
 
             token_transfer(get_self(), account, {static_cast<int64_t>(claimable), itr->token}, "claim reward");
+            claimlog_action claimlog(get_self(), {get_self(), "active"_n});
+            claimlog.send(account, claimable, itr->token);
             total_claimed += claimable;
         }
     }
@@ -385,6 +385,9 @@ void stake::batch_update_reward(const name& account, const uint64_t pre_amount, 
         reward_index _reward(get_self(), itr->id);
         update_reward(account, pre_amount, now_amount, _reward, itr);
     }
+
+    stkchangelog_action stkchangelog(get_self(), {get_self(), "active"_n});
+    stkchangelog.send(account, pre_amount, now_amount);
 }
 
 template <typename T>

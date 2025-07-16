@@ -46,7 +46,20 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void stkchangelog(const name& account, const uint64_t pre_amount, const uint64_t now_amount){
+        require_auth(get_self());
+    }
+
+    [[eosio::action]]
+    void claimlog(const name& account, const uint64_t amount, const extended_symbol& token){
+        require_auth(get_self());
+    }
+
    using distributlog_action = eosio::action_wrapper<"distributlog"_n, &stake::distributlog>;
+   using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
+   using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
+   
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
         return (uint128_t{symbol.get_contract().value} << 64) | symbol.get_symbol().code().raw();
@@ -58,6 +71,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         uint64_t unstake_expire_seconds = 259200;  // 3 days
         uint64_t max_widthraw_rows = 1000;         // Maximum number of rows to return in withdraw action
         uint16_t veteran_ratio = 2000;             // 20%
+        uint64_t max_stake_amount = 274877906944;  // 256GB
     };
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
