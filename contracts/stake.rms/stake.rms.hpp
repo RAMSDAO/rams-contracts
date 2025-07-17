@@ -40,6 +40,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     [[eosio::action]]
     void claim(const name& account);
 
+     [[eosio::action]]
+     void addrenttoken(const extended_symbol& token);
+
     // logs
     [[eosio::action]]
     void distributlog(const name& from, const extended_asset& quantity){
@@ -56,9 +59,15 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token){
+        require_auth(get_self());
+    }
+
    using distributlog_action = eosio::action_wrapper<"distributlog"_n, &stake::distributlog>;
    using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
    using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
+   using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
    
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {

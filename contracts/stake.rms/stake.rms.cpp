@@ -332,6 +332,31 @@ void stake::claim(const name& account) {
     check(total_claimed > 0, "stake.rms::claim: no reward to claim");
 }
 
+void stake::addrenttoken(const extended_symbol& token) {
+    require_auth(get_self());
+
+    auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
+    auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(token));
+    check(rent_token_itr == rent_token_idx.end(), "stake.rms::addrenttoken: rent token already exist");
+    // check token
+    eosio::token::get_supply(token.get_contract(), token.get_symbol().code());
+
+    auto rent_token_id = _rent_token.available_primary_key();
+    if (rent_token_id == 0) {
+        rent_token_id = 1;
+    }
+    _rent_token.emplace(get_self(), [&](auto& row) {
+        row.id = rent_token_id;
+        row.token = token;
+        row.enabled = true;
+        row.last_reward_time = current_time_point();
+    });
+
+    // log
+    addtokenlog_action addtokenlog(get_self(), {get_self(), "active"_n});
+    addtokenlog.send(rent_token_id, token);
+}
+
 void stake::process_rent_payment(const name& owner, const name& borrower, const extended_asset& ext_in) {
     check(ext_in.quantity.amount > 0, "stake.rms::process_rent_payment: cannot deposit negative");
     // check support rent token
