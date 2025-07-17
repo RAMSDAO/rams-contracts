@@ -93,13 +93,30 @@ void stake::init() {
     _config.set(config, get_self());
 }
 
-void stake::config(const uint64_t min_unstake_amount, const uint64_t unstake_expire_seconds, const uint64_t max_widthraw_rows) {
+void stake::config(const config_row& new_config) {
     require_auth(get_self());
 
+    check(new_config.min_unstake_amount > 0, "stake.rms::config: min_unstake_amount must be greater than 0");
+    check(new_config.unstake_expire_seconds > 0, "stake.rms::config: unstake_expire_seconds must be greater than 0");
+    check(new_config.max_widthraw_rows > 0, "stake.rms::config: max_widthraw_rows must be greater than 0");
+    check(new_config.veteran_ratio <= RATIO_PRECISION, "stake.rms::config: veteran_ratio must be less than or equal to 10000");
+
+    // check token.rms limit max supply
+    token::stats _token_stats_table(TOKEN_RMS, V_SYMBOL.code().raw());
+    auto _token_stats = _token_stats_table.get(V_SYMBOL.code().raw(), "stake.rms::config: token stats not found");
+    check(_token_stats.max_supply.amount >= new_config.max_stake_amount, "stake.rms::config: token.rms limit max supply reached");
+
+    // check stat.stake_amount
+    auto stat = _stat.get_or_default();
+    check(stat.stake_amount <= new_config.max_stake_amount, "stake.rms::config: stat.stake_amount must be less than max_stake_amount");
+
     config_row config = _config.get_or_default();
-    config.min_unstake_amount = min_unstake_amount;
-    config.unstake_expire_seconds = unstake_expire_seconds;
-    config.max_widthraw_rows = max_widthraw_rows;
+    config.min_unstake_amount = new_config.min_unstake_amount;
+    config.unstake_expire_seconds = new_config.unstake_expire_seconds;
+    config.max_widthraw_rows = new_config.max_widthraw_rows;
+    config.veteran_ratio = new_config.veteran_ratio;
+    config.max_stake_amount = new_config.max_stake_amount;
+
     _config.set(config, get_self());
 }
 

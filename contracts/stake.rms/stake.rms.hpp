@@ -16,11 +16,35 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
 
     const uint16_t RATIO_PRECISION = 10000;
 
+    /**
+     * @brief config table.
+     * @scope get_self()
+     *
+     * @field init_done - whether the config has been initialized
+     * @field min_unstake_amount - minimum amount of V to unstake
+     * @field unstake_expire_seconds - unstake expiration time
+     * @field max_widthraw_rows - maximum number of rows to return in withdraw action
+     * @field veteran_ratio - veteran ratio
+     * @field max_stake_amount - maximum amount of V to stake
+     * 
+     */
+    struct [[eosio::table("config")]] config_row {
+        bool init_done = false;
+        uint64_t min_unstake_amount = 1024;
+        uint64_t unstake_expire_seconds = 259200;  // 3 days
+        uint64_t max_widthraw_rows = 1000;         // Maximum number of rows to return in withdraw action
+        uint16_t veteran_ratio = 2000;             // 20%
+        uint64_t max_stake_amount = 274877906944;  // 256GB
+    };
+    
+    typedef eosio::singleton<"config"_n, config_row> config_index;
+    config_index _config = config_index(get_self(), get_self().value);
+
     [[eosio::action]]
     void init();
 
     [[eosio::action]]
-    void config(const uint64_t min_unstake_amount, const uint64_t unstake_expire_seconds, const uint64_t max_widthraw_rows);
+    void config(const config_row& config);
 
     [[eosio::action]]
     void unstake(const name& account, const uint64_t amount);
@@ -88,17 +112,6 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
         return (uint128_t{symbol.get_contract().value} << 64) | symbol.get_symbol().code().raw();
     }
-
-    struct [[eosio::table("config")]] config_row {
-        bool init_done = false;
-        uint64_t min_unstake_amount = 1024;
-        uint64_t unstake_expire_seconds = 259200;  // 3 days
-        uint64_t max_widthraw_rows = 1000;         // Maximum number of rows to return in withdraw action
-        uint16_t veteran_ratio = 2000;             // 20%
-        uint64_t max_stake_amount = 274877906944;  // 256GB
-    };
-    typedef eosio::singleton<"config"_n, config_row> config_index;
-    config_index _config = config_index(get_self(), get_self().value);
 
     /**
      * @brief 
