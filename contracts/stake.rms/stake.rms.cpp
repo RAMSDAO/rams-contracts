@@ -357,6 +357,45 @@ void stake::addrenttoken(const extended_symbol& token) {
     addtokenlog.send(rent_token_id, token);
 }
 
+void stake::borrow(const name& contract, const uint64_t amount) {
+    require_auth(get_self());
+
+    check(amount > 0, "stake.rms::borrow: cannot borrow negative amount");
+    check(is_account(contract), "stake.rms::borrow: account does not exists");
+
+    stat_row stat = _stat.get_or_default();
+    check(stat.used_amount + amount <= stat.stake_amount,
+          "stake.rms::borrow: has exceeded the number of rams that can be borrowed");
+
+    auto borrow_itr = _borrow.find(contract.value);
+
+    // update borrow info
+    if (borrow_itr != _borrow.end()) {
+        _borrow.modify(borrow_itr, same_payer, [&](auto& row) {
+            row.amount += amount;
+        });
+    } else {
+        borrow_itr = _borrow.emplace(get_self(), [&](auto& row) {
+            row.account = contract;
+            row.amount = amount;
+        });
+    }
+
+    // update stat
+    stat.used_amount += amount;
+    _stat.set(stat, get_self());
+
+    // transfer ram
+    ram_transfer(RAM_BANK_CONTRACT, contract, amount, "borrow ram");
+
+    // log
+    borrowlog_action borrowlog(get_self(), {get_self(), "active"_n});
+    borrowlog.send(contract, amount, borrow_itr->amount);
+
+    statlog_action statlog(get_self(), {get_self(), "active"_n});
+    statlog.send(stat.stake_amount, stat.used_amount);
+}
+
 void stake::process_rent_payment(const name& owner, const name& borrower, const extended_asset& ext_in) {
     check(ext_in.quantity.amount > 0, "stake.rms::process_rent_payment: cannot deposit negative");
     // check support rent token
@@ -450,4 +489,8 @@ stake::reward_index::const_iterator stake::update_reward(const name& account, co
 void stake::token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo) {
     eosio::token::transfer_action transfer(value.contract, {from, "active"_n});
     transfer.send(from, to, value.quantity, memo);
+}
+
+void stake::ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo) {
+    action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
 }

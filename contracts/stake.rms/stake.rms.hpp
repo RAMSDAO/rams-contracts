@@ -43,6 +43,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
      [[eosio::action]]
      void addrenttoken(const extended_symbol& token);
 
+    [[eosio::action]]
+    void borrow(const name& contract, const uint64_t amount);
+
     // logs
     [[eosio::action]]
     void distributlog(const name& from, const extended_asset& quantity){
@@ -64,10 +67,22 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         require_auth(get_self());
     }
 
+    [[eosio::action]]
+    void borrowlog(const name& contract, const uint64_t amount, const uint64_t total_borrow) {
+        require_auth(get_self());
+    }
+
+    [[eosio::action]]
+    void statlog(const uint64_t total_stake, const uint64_t total_borrow) {
+        require_auth(get_self());
+    }
+
    using distributlog_action = eosio::action_wrapper<"distributlog"_n, &stake::distributlog>;
    using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
    using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
    using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
+   using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &stake::borrowlog>;
+   using statlog_action = eosio::action_wrapper<"statlog"_n, &stake::statlog>;
    
    private:
     static uint128_t get_extended_symbol_key(extended_symbol symbol) {
@@ -230,6 +245,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void on_stake(const name& account, const asset& quantity);
     void batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount);
     void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
+    void ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo);
 
     template <typename T, typename ITR>
     void update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount);
