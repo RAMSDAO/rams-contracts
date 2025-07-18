@@ -84,7 +84,7 @@ void stake::init() {
         // save borrow to borrow table
         _borrow.emplace(get_self(), [&](auto& row) {
             row.account = itr->account;
-            row.amount = itr->bytes;
+            row.bytes = itr->bytes;
         });
     }
 
@@ -99,7 +99,6 @@ void stake::config(const config_row& new_config) {
     check(new_config.min_unstake_amount > 0, "stake.rms::config: min_unstake_amount must be greater than 0");
     check(new_config.unstake_expire_seconds > 0, "stake.rms::config: unstake_expire_seconds must be greater than 0");
     check(new_config.max_widthraw_rows > 0, "stake.rms::config: max_widthraw_rows must be greater than 0");
-    check(new_config.veteran_ratio <= RATIO_PRECISION, "stake.rms::config: veteran_ratio must be less than or equal to 10000");
 
     // check token.rms limit max supply
     token::stats _token_stats_table(TOKEN_RMS, V_SYMBOL.code().raw());
@@ -114,7 +113,6 @@ void stake::config(const config_row& new_config) {
     config.min_unstake_amount = new_config.min_unstake_amount;
     config.unstake_expire_seconds = new_config.unstake_expire_seconds;
     config.max_widthraw_rows = new_config.max_widthraw_rows;
-    config.veteran_ratio = new_config.veteran_ratio;
     config.max_stake_amount = new_config.max_stake_amount;
 
     _config.set(config, get_self());
@@ -279,37 +277,10 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
 
     extended_asset ext_in = {quantity, contract};
 
-    // distribute gasfund
-    if (from == GAS_FUND_CONTRACT && contract == BTC_XSAT && quantity.symbol == BTC_SYMBOL) {
-        distribute_gasfund(from, ext_in);
-        return;
-    }
-
     const std::vector<string> parts = rams::utils::split(memo, ",");
     check(parts.size() == 2 && parts[0] == "rent", "stake.rms::on_transfer: invalid memo");
     auto borrower = rams::utils::parse_name(parts[1]);
     process_rent_payment(from, borrower, ext_in);
-}
-
-void stake::distribute_gasfund(const name& from, const extended_asset& quantity) {
-    auto config = _config.get_or_default();
-    // calcuate veteran and reward
-    auto veteran_quantity = quantity * config.veteran_ratio / RATIO_PRECISION;
-    auto reward_quantity = quantity - veteran_quantity;
-
-    // transfer to honor.rms
-    if(veteran_quantity.quantity.amount > 0) {
-        token_transfer(get_self(), HONOR_RMS, veteran_quantity, "gasfund");
-    }
-
-    // deposit rent
-    if(reward_quantity.quantity.amount > 0) {
-
-        process_rent_payment(from, UTXO_MANAGER_CONTRACT, reward_quantity);
-    }
-
-    bank::distributlog_action distributlog(get_self(), {get_self(), "active"_n});
-    distributlog.send(quantity, veteran_quantity, reward_quantity);
 }
 
 void stake::claim(const name& account) {
@@ -374,14 +345,14 @@ void stake::addrenttoken(const extended_symbol& token) {
     addtokenlog.send(rent_token_id, token);
 }
 
-void stake::borrow(const name& contract, const uint64_t amount) {
+void stake::borrow(const name& contract, const uint64_t bytes) {
     require_auth(get_self());
 
-    check(amount > 0, "stake.rms::borrow: cannot borrow negative amount");
+    check(bytes > 0, "stake.rms::borrow: cannot borrow negative amount");
     check(is_account(contract), "stake.rms::borrow: account does not exists");
 
     stat_row stat = _stat.get_or_default();
-    check(stat.used_amount + amount <= stat.stake_amount,
+    check(stat.used_amount + bytes <= stat.stake_amount,
           "stake.rms::borrow: has exceeded the number of rams that can be borrowed");
 
     auto borrow_itr = _borrow.find(contract.value);
@@ -389,25 +360,25 @@ void stake::borrow(const name& contract, const uint64_t amount) {
     // update borrow info
     if (borrow_itr != _borrow.end()) {
         _borrow.modify(borrow_itr, same_payer, [&](auto& row) {
-            row.amount += amount;
+            row.bytes += bytes;
         });
     } else {
         borrow_itr = _borrow.emplace(get_self(), [&](auto& row) {
             row.account = contract;
-            row.amount = amount;
+            row.bytes = bytes;
         });
     }
 
     // update stat
-    stat.used_amount += amount;
+    stat.used_amount += bytes;
     _stat.set(stat, get_self());
 
     // transfer ram
-    ram_transfer(RAM_BANK_CONTRACT, contract, amount, "borrow ram");
+    ram_transfer(RAM_BANK_CONTRACT, contract, bytes, "borrow ram");
 
     // log
     borrowlog_action borrowlog(get_self(), {get_self(), "active"_n});
-    borrowlog.send(contract, amount, borrow_itr->amount);
+    borrowlog.send(contract, bytes, borrow_itr->bytes);
 
     statlog_action statlog(get_self(), {get_self(), "active"_n});
     statlog.send(stat.stake_amount, stat.used_amount);
@@ -421,7 +392,7 @@ void stake::process_rent_payment(const name& owner, const name& borrower, const 
     check(rent_token_itr != rent_token_idx.end() && rent_token_itr->enabled, "stake.rms::process_rent_payment: unsupported rent token");
 
     auto borrow_itr = _borrow.find(borrower.value);
-    check(borrow_itr != _borrow.end() && borrow_itr->amount > 0, "stake.rms::process_rent_payment: no lending, no rent transferred");
+    check(borrow_itr != _borrow.end() && borrow_itr->bytes > 0, "stake.rms::process_rent_payment: no lending, no rent transferred");
 
     // update rent token
     rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {

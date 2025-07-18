@@ -33,10 +33,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         uint64_t min_unstake_amount = 1024;
         uint64_t unstake_expire_seconds = 259200;  // 3 days
         uint64_t max_widthraw_rows = 1000;         // Maximum number of rows to return in withdraw action
-        uint16_t veteran_ratio = 2000;             // 20%
         uint64_t max_stake_amount = 274877906944;  // 256GB
     };
-    
+
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
 
@@ -68,14 +67,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
      void addrenttoken(const extended_symbol& token);
 
     [[eosio::action]]
-    void borrow(const name& contract, const uint64_t amount);
+    void borrow(const name& contract, const uint64_t bytes);
 
     // logs
-    [[eosio::action]]
-    void distributlog(const name& from, const extended_asset& quantity){
-        require_auth(get_self());
-    }
-
     [[eosio::action]]
     void stkchangelog(const name& account, const uint64_t pre_amount, const uint64_t now_amount){
         require_auth(get_self());
@@ -101,7 +95,6 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         require_auth(get_self());
     }
 
-   using distributlog_action = eosio::action_wrapper<"distributlog"_n, &stake::distributlog>;
    using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
    using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
    using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
@@ -223,7 +216,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
      **/
      struct [[eosio::table]] borrow_row {
         name account;
-        uint64_t amount;
+        uint64_t bytes;
         uint64_t primary_key() const { return account.value; }
     };
     typedef eosio::multi_index<"borrow"_n, borrow_row> borrow_index;
@@ -267,6 +260,5 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward, 
                                                 const rent_token_index::const_iterator& rent_token_itr);
 
-    void distribute_gasfund(const name& from, const extended_asset& quantity);
     void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
 };
