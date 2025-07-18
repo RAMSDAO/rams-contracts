@@ -147,13 +147,15 @@ void stake::on_stake(const name& account, const asset& quantity) {
 void stake::unstake(const name& account, const uint64_t amount) {
     require_auth(account);
 
-    config_row config = _config.get();
-    check(amount >= config.min_unstake_amount, "stake.rms::unstake: unstake count must be greater than or equal to the minimum unstake count");
-
     auto stake_itr = _stake.require_find(account.value, "stake.rms::unstake: account not found in stake table");
-
     // Check if the account has enough amount to unstake
     check(stake_itr->amount >= amount, "stake.rms::unstake: Insufficient amount to unstake");
+
+    // check if the amount is greater than the minimum unstake amount
+    if (stake_itr->amount > amount) {
+        config_row config = _config.get();
+        check(amount >= config.min_unstake_amount, "stake.rms::unstake: unstake amount must be greater than or equal to the minimum unstake amount");
+    }
 
     // Update the stake record
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
