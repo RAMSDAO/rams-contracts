@@ -1,0 +1,538 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addrenttoken",
+            "base": "",
+            "fields": [
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "addtokenlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "rent_token_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "borrow",
+            "base": "",
+            "fields": [
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "borrow_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "borrowlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "contract",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "claim",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "claimlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "cleardata",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
+                }
+            ]
+        },
+        {
+            "name": "config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "config",
+                    "type": "config_row"
+                }
+            ]
+        },
+        {
+            "name": "config_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "init_done",
+                    "type": "bool"
+                },
+                {
+                    "name": "min_unstake_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unstake_expire_seconds",
+                    "type": "uint64"
+                },
+                {
+                    "name": "max_widthraw_rows",
+                    "type": "uint64"
+                },
+                {
+                    "name": "max_stake_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "extended_symbol",
+            "base": "",
+            "fields": [
+                {
+                    "name": "sym",
+                    "type": "symbol"
+                },
+                {
+                    "name": "contract",
+                    "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "init",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "rams2v",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "rent_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_rent_received",
+                    "type": "extended_asset"
+                }
+            ]
+        },
+        {
+            "name": "rent_token_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "total_rent_received",
+                    "type": "uint64"
+                },
+                {
+                    "name": "acc_per_share",
+                    "type": "uint128"
+                },
+                {
+                    "name": "last_reward_time",
+                    "type": "time_point_sec"
+                },
+                {
+                    "name": "total_reward",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward_balance",
+                    "type": "uint64"
+                },
+                {
+                    "name": "enabled",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "restake",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "reward_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                },
+                {
+                    "name": "debt",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unclaimed",
+                    "type": "uint64"
+                },
+                {
+                    "name": "claimed",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "stake_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unstaking_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "stat_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "stake_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "used_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "statlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_stake",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "stkchangelog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "pre_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "now_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "unstake",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "unstake_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unstaking_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addrenttoken",
+            "type": "addrenttoken",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "addtokenlog",
+            "type": "addtokenlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "borrow",
+            "type": "borrow",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "borrowlog",
+            "type": "borrowlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claim",
+            "type": "claim",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claimlog",
+            "type": "claimlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cleardata",
+            "type": "cleardata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cleartable",
+            "type": "cleartable",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "config",
+            "type": "config",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rams2v",
+            "type": "rams2v",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "restake",
+            "type": "restake",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "statlog",
+            "type": "statlog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stkchangelog",
+            "type": "stkchangelog",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "unstake",
+            "type": "unstake",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "withdraw",
+            "type": "withdraw",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "borrow",
+            "type": "borrow_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "config",
+            "type": "config_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "rent",
+            "type": "rent_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "renttoken",
+            "type": "rent_token_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "reward",
+            "type": "reward_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "stake",
+            "type": "stake_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "stat",
+            "type": "stat_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "unstake",
+            "type": "unstake_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}
