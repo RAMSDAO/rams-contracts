@@ -11,7 +11,7 @@ void honor::on_ramstransfer(const name& from, const name& to, const asset& quant
     check(!config.disabled_convert, "convert is disabled");
 
     uint64_t bytes = (quantity.amount * 494) / 10;
-    action(permission_level{_self, "active"_n}, RAM_BANK, "rams2ramx"_n, make_tuple(from, bytes)).send();
+    action(permission_level{_self, "active"_n}, STAKE_CONTRACT, "rams2v"_n, make_tuple(from, bytes)).send();
 
     // log
     veteranlog_action veteranlog(get_self(), {get_self(), "active"_n});

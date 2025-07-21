@@ -13,7 +13,7 @@ void stake::init() {
 
     // Initialize the stake table
     bank::deposit_table _deposit = bank::deposit_table(RAMBANK_EOS, RAMBANK_EOS.value);
-    for (auto itr = _deposit.begin(); itr != _deposit.end();) {
+    for (auto itr = _deposit.begin(); itr != _deposit.end(); ++itr) {
         if (itr->frozen_bytes.has_value() && itr->frozen_bytes.value() > 0) {
             check(false, "stake.rms::init: cannot initialize stake with frozen deposits");
         }
@@ -119,7 +119,6 @@ void stake::config(const config_row& new_config) {
 }
 
 void stake::on_stake(const name& account, const asset& quantity) {
-    require_auth(account);
 
     check(quantity.symbol == V_SYMBOL, "stake.rms::stake: invalid symbol");
     check(quantity.amount > 0, "stake.rms::stake: amount must be greater than 0");
@@ -140,6 +139,10 @@ void stake::on_stake(const name& account, const asset& quantity) {
             row.amount += quantity.amount;
         });
     }
+
+    // update stat
+    stat.stake_amount += quantity.amount;
+    _stat.set(stat, get_self());
 
     batch_update_reward(account, stake_itr->amount - quantity.amount, stake_itr->amount);
 }
@@ -170,6 +173,11 @@ void stake::unstake(const name& account, const uint64_t amount) {
         row.amount = amount;
         row.unstaking_time = current_time_point();  // Set the current time as the start of unstaking
     });
+
+    // update stat
+    auto stat = _stat.get_or_default();
+    stat.stake_amount -= amount;
+    _stat.set(stat, get_self());
 
     // Update reward
     batch_update_reward(account, stake_itr->amount + amount, stake_itr->amount);
@@ -217,10 +225,9 @@ void stake::withdraw(const name& account) {
         if (process_count >= config.max_widthraw_rows) {
             break;  // Limit the number of processed unstake records
         }
-        auto unstake_itr = unstake_idx.begin();
         if (current_time_sec - unstake_itr->unstaking_time.sec_since_epoch() >= config.unstake_expire_seconds) {
             withdraw_amount += unstake_itr->amount;
-            unstake_itr = unstake_idx.erase(unstake_itr);
+            unstake_itr = unstake_idx.erase(unstake_itr); // erase后返回下一个有效迭代器
         } else {
             break;
         }
@@ -448,7 +455,7 @@ template <typename T>
 stake::reward_index::const_iterator stake::update_reward(const name& account, const uint64_t& pre_amount,
                                                                  const uint64_t& now_amount, T& _reward, 
                                                                  const rent_token_index::const_iterator& rent_token_itr) {
-    auto reward_itr = _reward.require_find(account.value, "stake.rms::update_reward: account not found in reward table");
+    auto reward_itr = _reward.find(account.value);
     uint64_t per_debt = 0;
     if (reward_itr != _reward.end()) {
         per_debt = reward_itr->debt;
