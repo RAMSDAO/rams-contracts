@@ -227,7 +227,7 @@ void stake::withdraw(const name& account) {
         }
         if (current_time_sec - unstake_itr->unstaking_time.sec_since_epoch() >= config.unstake_expire_seconds) {
             withdraw_amount += unstake_itr->amount;
-            unstake_itr = unstake_idx.erase(unstake_itr); // erase后返回下一个有效迭代器
+            unstake_itr = unstake_idx.erase(unstake_itr); 
         } else {
             break;
         }
