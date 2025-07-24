@@ -488,6 +488,7 @@ void bank::do_deposit_rent(const name& owner, const name& borrower, const extend
 void bank::claim(const name& owner) {
     // auth
     require_auth(owner);
+    check(false, "rambank.eos::claim: this action is closed, use stake.rms::claim action instead");
 
     auto current_time = current_time_point();
     auto deposit_itr = _deposit.require_find(owner.value, "rambank.eos::claim: [deposits] does not exists");
