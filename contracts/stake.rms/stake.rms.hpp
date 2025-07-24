@@ -176,11 +176,23 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         // remove borrow
         auto itr2 = _borrow.begin();
         while (itr2 != _borrow.end()) {
+            rent_index _rent(get_self(), itr2->account.value);
+            auto itrr = _rent.begin();
+            while (itrr != _rent.end()) {
+                itrr = _rent.erase(itrr);
+            }
+
             itr2 = _borrow.erase(itr2);
         }
         // remove renttoken
         auto itr3 = _rent_token.begin();
         while (itr3 != _rent_token.end()) {
+            reward_index _reward(get_self(), itr3->id);
+            auto itr4 = _reward.begin();
+            while (itr4 != _reward.end()) {
+                itr4 = _reward.erase(itr4);
+            }
+
             itr3 = _rent_token.erase(itr3);
         }
         // remove unstake/rent/reward
@@ -191,22 +203,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
                 itru = _unstake.erase(itru);
             }
         }
-        // rent
-        for (int i = 0; i < 10; ++i) {
-            rent_index _rent(get_self(), i);
-            auto itrr = _rent.begin();
-            while (itrr != _rent.end()) {
-                itrr = _rent.erase(itrr);
-            }
-        }
-        // reward
-        for (int i = 0; i < 10; ++i) {
-            reward_index _reward(get_self(), i);
-            auto itrw = _reward.begin();
-            while (itrw != _reward.end()) {
-                itrw = _reward.erase(itrw);
-            }
-        }
+
         // config/stat
         _config.remove();
         _stat.remove();

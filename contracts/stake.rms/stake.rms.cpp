@@ -48,7 +48,7 @@ void stake::init() {
         }
 
         // save rent token to rent token table
-        rent_token_index _rent_token(get_self(), itr->id);
+        rent_token_index _rent_token(get_self(), get_self().value);
         _rent_token.emplace(get_self(), [&](auto& row) {
             row.id = itr->id;
             row.token = itr->token;

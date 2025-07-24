@@ -638,43 +638,7 @@ void bank::do_distribute_gasfund(const extended_asset& quantity) {
 
     // transfer to stram
     if(reward_quantity.quantity.amount > 0) {
-
-        auto reward_token = quantity.get_extended_symbol();
-        auto rewards = get_reward(reward_token);
-
-        // update reward
-        auto stat = _stat.get_or_default();
-        auto current_time = current_time_point();
-        rewards += reward_quantity.quantity.amount;
-
-        auto rent_token_idx = _rent_token.get_index<"bytoken"_n>();
-        auto rent_token_itr = rent_token_idx.find(get_extended_symbol_key(reward_token));
-        check(rent_token_itr != rent_token_idx.end(), "rambank.eos::do_distribute_gasfund: unsupported rent token");
-
-        // update rent
-        asset rewards_asset = {static_cast<int64_t>(rewards), reward_token.get_symbol()};
-        extended_asset rewards_ext_asset = {rewards_asset, reward_token.get_contract()};
-        rent_table _rent(get_self(), UTXO_MANAGER_CONTRACT.value);
-        auto rent_itr = _rent.find(rent_token_itr->id);
-        if (rent_itr == _rent.end()) {
-            _rent.emplace(get_self(), [&](auto& row) {
-                row.id = rent_token_itr->id;
-                row.total_rent_received = rewards_ext_asset;
-            });
-        } else {
-            _rent.modify(rent_itr, same_payer, [&](auto& row) {
-                row.total_rent_received += rewards_ext_asset;
-            });
-        }
-
-        uint128_t incr_acc_per_share = safemath128::div(safemath128::mul(rewards, PRECISION_FACTOR), stat.deposited_bytes);
-        rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {
-            row.total_rent_received += rewards;
-            row.acc_per_share += incr_acc_per_share;
-            row.last_reward_time = current_time;
-            row.total_reward += rewards;
-            row.reward_balance += rewards;
-        });
+        token_transfer(get_self(), STAKE_RMS, reward_quantity, "rent,utxomng.xsat");
     }
 
     bank::distributlog_action distributlog(get_self(), {get_self(), "active"_n});
