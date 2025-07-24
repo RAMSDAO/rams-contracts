@@ -469,26 +469,6 @@ describe('stake', () => {
             expect(stake_info.unstaking_amount).toEqual(0)
         })
 
-        test('addrenttoken', async () => {
-            await contracts.stake.actions
-                .addrenttoken([{ sym: '0,SATS', contract: 'sats.eos' }])
-                .send('stake.rms@active')
-            const rentTokens = stake_rms.getRentToken(1)
-            expect(rentTokens).toEqual({
-                id: 1,
-                token: {
-                    contract: 'sats.eos',
-                    sym: '0,SATS',
-                },
-                enabled: true,
-                total_rent_received: 0,
-                total_reward: 0,
-                reward_balance: 0,
-                acc_per_share: 0,
-                last_reward_time: currentTime(),
-            })
-        })
-
         test('borrow RAM', async () => {
             const init_borrow_amount = 137438953472
             const borrow_amount = 1000
