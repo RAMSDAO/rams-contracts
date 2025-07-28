@@ -463,7 +463,7 @@ describe('stake', () => {
             await contracts.stake.actions.withdraw(['account1']).send('account1@active')
             const after_balance = getTokenBalance('account1', contracts.token, 'V')
             
-            // expect(after_balance - before_balance).toEqual(unstake_amount)
+            expect(after_balance - before_balance).toEqual(unstake_amount)
             
             const stake_info = stake_rms.getStake('account1')
             expect(stake_info.unstaking_amount).toEqual(0)
