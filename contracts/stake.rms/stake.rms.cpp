@@ -225,6 +225,7 @@ void stake::withdraw(const name& account) {
         if (process_count >= config.max_widthraw_rows) {
             break;  // Limit the number of processed unstake records
         }
+
         if (current_time_sec - unstake_itr->unstaking_time.sec_since_epoch() >= config.unstake_expire_seconds) {
             withdraw_amount += unstake_itr->amount;
             unstake_itr = unstake_idx.erase(unstake_itr); 
@@ -239,8 +240,8 @@ void stake::withdraw(const name& account) {
         row.unstaking_amount -= withdraw_amount;  // Decrement unstaking amount
     });
 
-    auto transfer_data = std::make_tuple(_self, account, asset(withdraw_amount, V_SYMBOL), string("stake V release"));
-    action(permission_level{get_self(), "active"_n}, TOKEN_RMS, "transfer"_n, transfer_data);
+    extended_asset ext_asset = {{static_cast<int64_t>(withdraw_amount), V_SYMBOL}, TOKEN_RMS};
+    token_transfer(get_self(), account, ext_asset, "stake V release");
 }
 
 void stake::rams2v(const name& account, const uint64_t amount) {
