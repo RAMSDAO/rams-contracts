@@ -639,7 +639,7 @@ void bank::do_distribute_gasfund(const extended_asset& quantity) {
 
     // transfer to stram
     if(reward_quantity.quantity.amount > 0) {
-        token_transfer(get_self(), STAKE_RMS, reward_quantity, "rent,utxomng.xsat");
+        token_transfer(get_self(), STAKE_CONTRACT, reward_quantity, "rent,utxomng.xsat");
     }
 
     bank::distributlog_action distributlog(get_self(), {get_self(), "active"_n});

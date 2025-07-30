@@ -24,7 +24,6 @@ class [[eosio::contract("rambank.eos")]] bank : public contract {
     const name RAMX_EOS = "ramx.eos"_n;
     const name HONOR_RMS = "honor.rms"_n;
     const name RAMS_DAO = "ramsdao.eos"_n;
-    const name STAKE_RMS = "stake.rms"_n;
 
     struct memo_schema {
         string action;

@@ -13,7 +13,6 @@ class [[eosio::contract("honor.rms")]] honor : public contract {
    public:
     using contract::contract;
 
-    const name STAKE_CONTRACT = "stake.rms"_n;
     static constexpr string_view GASFUND_MEMO = "gasfund";
 
     struct [[eosio::table]] veteran_row {
