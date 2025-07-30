@@ -4,6 +4,11 @@
     "types": [],
     "structs": [
         {
+            "name": "cancelallord",
+            "base": "",
+            "fields": []
+        },
+        {
             "name": "cancelorder",
             "base": "",
             "fields": [
@@ -24,6 +29,29 @@
                 {
                     "name": "order_ids",
                     "type": "uint64[]"
+                }
+            ]
+        },
+        {
+            "name": "cleardata",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
                 }
             ]
         },
@@ -82,6 +110,26 @@
                 {
                     "name": "order_id",
                     "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "imporder",
+            "base": "",
+            "fields": [
+                {
+                    "name": "orders",
+                    "type": "order_row[]"
+                }
+            ]
+        },
+        {
+            "name": "impstat",
+            "base": "",
+            "fields": [
+                {
+                    "name": "stat",
+                    "type": "stat_row"
                 }
             ]
         },
@@ -348,6 +396,11 @@
     ],
     "actions": [
         {
+            "name": "cancelallord",
+            "type": "cancelallord",
+            "ricardian_contract": ""
+        },
+        {
             "name": "cancelorder",
             "type": "cancelorder",
             "ricardian_contract": ""
@@ -358,8 +411,28 @@
             "ricardian_contract": ""
         },
         {
+            "name": "cleardata",
+            "type": "cleardata",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "cleartable",
+            "type": "cleartable",
+            "ricardian_contract": ""
+        },
+        {
             "name": "feeconfig",
             "type": "feeconfig",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "imporder",
+            "type": "imporder",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "impstat",
+            "type": "impstat",
             "ricardian_contract": ""
         },
         {

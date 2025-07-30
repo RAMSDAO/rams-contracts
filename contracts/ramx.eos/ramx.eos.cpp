@@ -161,14 +161,17 @@ vector<uint64_t> ramx::cancelorder(const name& owner, const vector<uint64_t> ord
     return canceled_order_ids;
 }
 
-void ramx::cancelallord() {
+void ramx::cancelallord(const uint16_t max_rows) {
     require_auth(_self);
 
     auto config = _config.get();
     check(!config.disabled_cancel_order, "ramx.eos::cancelallord: cancel order has been suspended");
     permission_level self_active = permission_level{get_self(), "active"_n};
-    for (auto itr = _order.begin(); itr != _order.end();) {
+    auto rows = 0;
+    for (auto itr = _order.begin(); itr != _order.end(); ++itr) {
+        if (max_rows > 0 && rows >= max_rows) break;
         action(self_active, get_self(), "cancelorder"_n, std::make_tuple(itr->owner, vector<uint64_t>{itr->id})).send();
+        rows++;
     }
 }
 

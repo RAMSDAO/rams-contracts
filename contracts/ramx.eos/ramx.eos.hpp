@@ -188,7 +188,60 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
     vector<uint64_t> cancelorder(const name& owner, const vector<uint64_t> order_ids);
 
     [[eosio::action]]
-    void cancelallord();
+    void cancelallord(const uint16_t max_rows);
+
+#ifdef DEBUG
+    [[eosio::action]]
+    void imporder(const vector<order_row>& orders) {
+        require_auth(get_self());
+        for (const auto& order : orders) {
+            _order.emplace(get_self(), [&](auto& row) {
+                row.id = order.id;
+                row.type = order.type;
+                row.owner = order.owner;
+                row.price = order.price;
+                row.bytes = order.bytes;
+                row.quantity = order.quantity;
+                row.created_at = order.created_at;
+            });
+        }
+    }
+    
+    [[eosio::action]]
+    void impstat(const stat_row& stat) {
+        require_auth(get_self());
+        _stat.set(stat, get_self());
+    }   
+
+    [[eosio::action]]
+    void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
+        require_auth(get_self());
+        const uint64_t rows_to_clear = (!max_rows || *max_rows == 0) ? -1 : *max_rows;
+        const uint64_t value = scope ? scope->value : get_self().value;
+
+        if (table_name == "orders"_n) {
+            auto itr = _order.begin();
+            while (itr != _order.end()) {
+                itr = _order.erase(itr);
+            }
+        } else if (table_name == "stat"_n) {
+            _stat.remove();
+        } else {
+            check(false, "ramx.eos::cleartable: [table_name] unknown table to clear");
+        }
+    }
+
+    [[eosio::action]]
+    void cleardata() {
+        require_auth(get_self());
+        auto itr = _order.begin();
+        while (itr != _order.end()) {
+            itr = _order.erase(itr);
+        }
+
+        _stat.remove();
+    }
+#endif
 
     /**
      * Sell ram action.
