@@ -206,7 +206,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
 
         // config/stat
         _config.remove();
-        _stat.remove();
+        // _stat.remove();
     }
 #endif
    private:

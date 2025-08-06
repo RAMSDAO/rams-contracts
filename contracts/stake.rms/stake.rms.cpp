@@ -272,15 +272,12 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
     if (to != get_self() || from == POOL_REWARD_CONTAINER) return;
 
     const name contract = get_first_receiver();
+    if (memo ==  "ignore"){
+        return;
+    }
 
     // on stake
     if (contract == TOKEN_RMS && quantity.symbol == V_SYMBOL) {
-
-        if (memo ==  "ignore"){
-
-            return;
-        }
-
         on_stake(from, quantity);
         return;
     }
