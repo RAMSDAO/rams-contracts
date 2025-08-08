@@ -5,6 +5,10 @@
 #include "../internal/safemath.hpp"
 #include "../internal/utils.hpp"
 
+#ifdef DEBUG
+#include <stake.rms/debug.hpp>
+#endif
+
 void stake::init() {
     require_auth(get_self());
 
