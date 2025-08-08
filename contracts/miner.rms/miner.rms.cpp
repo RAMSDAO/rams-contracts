@@ -121,35 +121,35 @@ void miner::update_user_rewards(const name& user, uint64_t pool_id) {
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
 
-    uint64_t current_staked_v = get_stake_v(user);
+    uint64_t current_stake_v = get_stake_v(user);
 
-    if (user_itr == users.end() && current_staked_v == 0) {
+    if (user_itr == users.end() && current_stake_v == 0) {
         return;
     }
+
+    const uint128_t total_entitlement = (uint128_t)current_stake_v * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
 
     if (user_itr == users.end()) {
         users.emplace(get_self(), [&](auto& u) {
             u.user = user;
-            u.stake_amount = current_staked_v;
-            u.unclaimed = asset(0, pool_itr->reward_per_block.symbol);
+            u.stake_amount = current_stake_v;
+            u.unclaimed = asset(total_entitlement, pool_itr->reward_per_block.symbol);
             u.claimed = asset(0, pool_itr->reward_per_block.symbol);
-            u.debt = ((uint128_t)current_staked_v * pool_itr->acc_reward_per_share) / PRECISION_FACTOR;
+            u.debt = total_entitlement;
         });
-        return;
+    } else {
+        // Calculate new rewards based on the user's [previous] recorded stake amount
+        // earned = (old stake amount * current pool accumulated reward) - previous reward debt
+        const uint128_t total_earned_val = (uint128_t)user_itr->stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
+        users.modify(user_itr, same_payer, [&](auto& u) {
+            if (total_earned_val > user_itr->debt) {
+                uint128_t new_pending_reward = total_earned_val - user_itr->debt;
+                u.unclaimed.amount += new_pending_reward;
+            }
+            u.stake_amount = current_stake_v;
+            u.debt = total_entitlement;
+        });
     }
-
-    // Calculate new rewards based on the user's [previous] recorded stake amount
-    // earned = (old stake amount * current pool accumulated reward) - previous reward debt
-    uint128_t total_earned_val = (uint128_t)user_itr->stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
-
-    users.modify(user_itr, same_payer, [&](auto& u) {
-        if (total_earned_val > user_itr->debt) {
-            uint128_t new_pending_reward = total_earned_val - user_itr->debt;
-            u.unclaimed.amount += new_pending_reward;
-        }
-        u.stake_amount = current_staked_v;
-        u.debt = ((uint128_t)current_staked_v * pool_itr->acc_reward_per_share) / PRECISION_FACTOR;
-    });
 }
 
 uint64_t miner::get_stake_v(const name& user) {

@@ -9,6 +9,7 @@
 #include "../internal/defines.hpp"
 
 using namespace eosio;
+using std::string;
 
 class [[eosio::contract("stake.rms")]] stake : public contract {
    public:
@@ -26,7 +27,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
      * @field max_widthraw_rows - maximum number of rows to return in withdraw action
      * @field veteran_ratio - veteran ratio
      * @field max_stake_amount - maximum amount of V to stake
-     * 
+     *
      */
     struct [[eosio::table("config")]] config_row {
         bool init_done = false;
@@ -38,6 +39,43 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
 
     typedef eosio::singleton<"config"_n, config_row> config_index;
     config_index _config = config_index(get_self(), get_self().value);
+
+    /**
+     * @brief
+     *
+     *
+     * @scope get_self()
+     *
+     * @field account - the account that staked
+     * @field amount - the amount of V staked.
+     * @field unstaking_amount - the amount of V unstaking.
+     *
+     */
+    struct [[eosio::table]] stake_row {
+        name account;
+        uint64_t amount;
+        uint64_t unstaking_amount;
+        uint64_t primary_key() const { return account.value; }
+        uint64_t by_amount() const { return amount; }
+    };
+    typedef eosio::multi_index<"stake"_n, stake_row> stake_index;
+
+    /**
+     * @brief
+     *
+     *
+     * @scope get_self()
+     *
+     * @field stake_amount - total stake amount
+     * @field used_amount - total used amount
+     *
+     **/
+    struct [[eosio::table("stat")]] stat_row {
+        uint64_t stake_amount = 137438953472;
+        uint64_t used_amount = 137438953472;
+    };
+    typedef eosio::singleton<"stat"_n, stat_row> stat_index;
+    stat_index _stat = stat_index(get_self(), get_self().value);
 
     [[eosio::action]]
     void init();
@@ -63,25 +101,25 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     [[eosio::action]]
     void claim(const name& account);
 
-     [[eosio::action]]
-     void addrenttoken(const extended_symbol& token);
+    [[eosio::action]]
+    void addrenttoken(const extended_symbol& token);
 
     [[eosio::action]]
     void borrow(const name& contract, const uint64_t bytes);
 
     // logs
     [[eosio::action]]
-    void stkchangelog(const name& account, const uint64_t pre_amount, const uint64_t now_amount){
+    void stkchangelog(const name& account, const uint64_t pre_amount, const uint64_t now_amount) {
         require_auth(get_self());
     }
 
     [[eosio::action]]
-    void claimlog(const name& account, const uint64_t amount, const extended_symbol& token){
+    void claimlog(const name& account, const uint64_t amount, const extended_symbol& token) {
         require_auth(get_self());
     }
 
     [[eosio::action]]
-    void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token){
+    void addtokenlog(const uint64_t rent_token_id, const extended_symbol& token) {
         require_auth(get_self());
     }
 
@@ -94,15 +132,14 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void statlog(const uint64_t total_stake, const uint64_t total_borrow) {
         require_auth(get_self());
     }
-    
 
-   using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
-   using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
-   using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
-   using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &stake::borrowlog>;
-   using statlog_action = eosio::action_wrapper<"statlog"_n, &stake::statlog>;
-   
-   #ifdef DEBUG
+    using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
+    using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
+    using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
+    using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &stake::borrowlog>;
+    using statlog_action = eosio::action_wrapper<"statlog"_n, &stake::statlog>;
+
+#ifdef DEBUG
     [[eosio::action]]
     void cleartable(const name table_name, const std::optional<name> scope = std::nullopt, const std::optional<uint64_t> max_rows = std::nullopt) {
         require_auth(get_self());
@@ -196,7 +233,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
             itr3 = _rent_token.erase(itr3);
         }
         // remove unstake/rent/reward
-        for (int i = 0; i < 10; ++i) { // assume scope is not many, adjust according to business
+        for (int i = 0; i < 10; ++i) {  // assume scope is not many, adjust according to business
             unstake_index _unstake(get_self(), i);
             auto itru = _unstake.begin();
             while (itru != _unstake.end()) {
@@ -215,52 +252,15 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     }
 
     /**
-     * @brief 
-     * 
+     * @brief
      *
-     * @scope get_self()
-     *
-     * @field stake_amount - total stake amount
-     * @field used_amount - total used amount
-     *
-     **/
-    struct [[eosio::table("stat")]] stat_row {
-        uint64_t stake_amount = 137438953472;
-        uint64_t used_amount = 137438953472;
-    };
-    typedef eosio::singleton<"stat"_n, stat_row> stat_index;
-    stat_index _stat = stat_index(get_self(), get_self().value);
-
-    /**
-     * @brief 
-     * 
-     *
-     * @scope get_self()
-     *
-     * @field account - the account that staked
-     * @field amount - the amount of V staked.
-     * @field unstaking_amount - the amount of V unstaking.
-     * 
-     */
-    struct [[eosio::table]] stake_row {
-        name account;
-        uint64_t amount;
-        uint64_t unstaking_amount;
-        uint64_t primary_key() const { return account.value; }
-        uint64_t by_amount() const { return amount; }
-    };
-    typedef eosio::multi_index<"stake"_n, stake_row> stake_index;
-
-    /**
-     * @brief 
-     * 
      *
      * @scope get_self()
      *
      * @field id - primary key
      * @field amount - the amount of V unstaking.
      * @field unstaking_time - the time of unstaking.
-     * 
+     *
      */
     struct [[eosio::table]] unstake_row {
         uint64_t id;
@@ -294,9 +294,8 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
         uint128_t by_token() const { return get_extended_symbol_key(token); }
     };
 
-    typedef eosio::multi_index<
-        "renttoken"_n, rent_token_row,
-        eosio::indexed_by<"bytoken"_n, const_mem_fun<rent_token_row, uint128_t, &rent_token_row::by_token>>>
+    typedef eosio::multi_index<"renttoken"_n, rent_token_row,
+                               eosio::indexed_by<"bytoken"_n, const_mem_fun<rent_token_row, uint128_t, &rent_token_row::by_token>>>
         rent_token_index;
 
     /**
@@ -322,7 +321,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
      * @field amount - the amount of V borrowed.
      *
      **/
-     struct [[eosio::table]] borrow_row {
+    struct [[eosio::table]] borrow_row {
         name account;
         uint64_t bytes;
         uint64_t primary_key() const { return account.value; }
@@ -365,8 +364,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount);
 
     template <typename T>
-    reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward, 
-                                                const rent_token_index::const_iterator& rent_token_itr);
+    reward_index::const_iterator update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward,
+                                               const rent_token_index::const_iterator& rent_token_itr);
 
     void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
+    void miner_notify(const name& account);
 };
