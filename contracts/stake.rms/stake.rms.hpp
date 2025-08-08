@@ -140,11 +140,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     using statlog_action = eosio::action_wrapper<"statlog"_n, &stake::statlog>;
 
 #ifdef DEBUG
-    // 调试功能：清理表格
     [[eosio::action]]
     void cleartable(const name table_name, const std::optional<name> scope = std::nullopt, const std::optional<uint64_t> max_rows = std::nullopt);
 
-    // 调试功能：清理所有数据
     [[eosio::action]]
     void cleardata();
 #endif

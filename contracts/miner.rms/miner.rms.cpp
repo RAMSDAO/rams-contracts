@@ -1,6 +1,10 @@
 #include <miner.rms/miner.rms.hpp>
 #include <stake.rms/stake.rms.hpp>
 
+#ifdef DEBUG
+#include <miner.rms/debug.hpp>
+#endif
+
 void miner::addpool(const name& reward_token, const asset& reward_per_block) {
     require_auth(get_self());
 
@@ -162,25 +166,4 @@ uint64_t miner::get_total_stake_v() {
     stake::stat_index _stat(STAKE_CONTRACT, STAKE_CONTRACT.value);
     auto stat = _stat.get_or_default();
     return stat.stake_amount;
-}
-
-void miner::clear() {
-    // require_auth(get_self());
-    // poolinfo_table poolinfo(get_self(), get_self().value);
-    // auto itr = poolinfo.begin();
-    // while (itr != poolinfo.end()) {
-    //     itr = poolinfo.erase(itr);
-    // }
-
-    // userinfo_index userinfo(get_self(), 1);
-    // auto user_itr = userinfo.begin();
-    // while (user_itr != userinfo.end()) {
-    //     user_itr = userinfo.erase(user_itr);
-    // }
-
-    userinfo_index userinfo0(get_self(), 0);
-    auto user_itr0 = userinfo0.begin();
-    while (user_itr0 != userinfo0.end()) {
-        user_itr0 = userinfo0.erase(user_itr0);
-    }
 }

@@ -57,16 +57,10 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     [[eosio::action]]
     void stakechange(const name& user);
 
-    /**
-     * @brief Public method: Update a pool's reward status
-     *
-     * @param pool_id - Pool ID
-     * Anyone can call this method to update the pool's accumulated rewards, typically called before other operations.
-     */
-    [[eosio::action]]
-    void updatepool(uint64_t pool_id);
-
-    ACTION clear();
+#ifdef DEBUG
+    ACTION clearpool(const uint64_t pool_id);
+    ACTION clearuser(const uint64_t pool_id);
+#endif
 
    private:
     struct [[eosio::table]] poolinfo_row {
@@ -99,4 +93,6 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     uint64_t get_total_stake_v();
     // Update a user's reward status
     void update_user_rewards(const name& user, uint64_t pool_id);
+    // Update a pool's reward status
+    void updatepool(uint64_t pool_id);
 };
