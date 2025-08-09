@@ -195,12 +195,14 @@ void stake::restake(const name& account, const uint64_t id) {
     check(current_time.sec_since_epoch() - unstake_itr->unstaking_time.sec_since_epoch() < config.unstake_expire_seconds,
           "stake.rms::restake: Under unstaking has reached its expiry; it cannot be directly restaked");
 
+    auto stake_itr = _stake.require_find(account.value, "stake.rms::restake: account not found in stake table");
+
     auto unstake_amount = unstake_itr->amount;
+    check(stake_itr->unstaking_amount >= unstake_amount, "stake.rms::restake: unstake amount is greater than total unstaking amount");
     // Remove the unstake entry
     _unstake.erase(unstake_itr);
 
     // Update the stake record
-    auto stake_itr = _stake.require_find(account.value, "stake.rms::restake: account not found in stake table");
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
         row.unstaking_amount -= unstake_amount;  // Decrement unstaking amount
         row.amount += unstake_amount;            // Add amount back to the stake
