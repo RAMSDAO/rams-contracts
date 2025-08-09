@@ -78,6 +78,7 @@ void miner::claim(const name& user, const uint64_t pool_id) {
 
 void miner::stakechange(const name& user, const uint64_t pre_amount) {
     require_auth(STAKE_CONTRACT);
+    check(pre_amount >= 0, "Previous stake amount must be non-negative");
 
     for (auto& pool : _poolinfo) {
         update_user_rewards(user, pool.id, pre_amount);
