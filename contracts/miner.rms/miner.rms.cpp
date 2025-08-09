@@ -24,6 +24,7 @@ void miner::setpool(uint64_t pool_id, const asset& reward_per_block) {
 
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     check(reward_per_block.amount >= 0, "Reward per block must be non-negative");
+    check(pool_itr->reward_per_block.symbol == reward_per_block.symbol, "Reward token symbol must match the pool's reward token");
 
     uint128_t acc_reward_per_share_update = pool_itr->acc_reward_per_share;
     uint32_t last_reward_block_update = pool_itr->last_reward_block;
@@ -120,8 +121,6 @@ void miner::updatepool(uint64_t pool_id) {
 void miner::update_user_rewards(const name& user, uint64_t pool_id) {
     updatepool(pool_id);
 
-    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
-
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
 
@@ -131,13 +130,15 @@ void miner::update_user_rewards(const name& user, uint64_t pool_id) {
         return;
     }
 
+    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+
     const uint128_t total_entitlement = (uint128_t)current_stake_v * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
 
     if (user_itr == users.end()) {
         users.emplace(get_self(), [&](auto& u) {
             u.user = user;
             u.stake_amount = current_stake_v;
-            u.unclaimed = asset(total_entitlement, pool_itr->reward_per_block.symbol);
+            u.unclaimed = asset(0, pool_itr->reward_per_block.symbol);
             u.claimed = asset(0, pool_itr->reward_per_block.symbol);
             u.debt = total_entitlement;
         });
