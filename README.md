@@ -9,12 +9,12 @@ RAM is not only the backbone of the EOS ecosystem, but also the key to innovatio
 
 ### Cdt
 
--   <a href="https://github.com/AntelopeIO/cdt/releases/download/v4.0.1/cdt_4.0.1_amd64.deb"> cdt_4.0.1_amd64.deb</a>
+- <a href="https://github.com/AntelopeIO/cdt/releases/download/v4.0.1/cdt_4.0.1_amd64.deb"> cdt_4.0.1_amd64.deb</a>
 
 ## Contracts
 
-| name                                                  | description                |
-| ----------------------------------------------------- | -------------------------- |
+| name                                                     | description                |
+| -------------------------------------------------------- | -------------------------- |
 | [newrams.eos](https://eoseyes.com/account/newrams.eos)   | Token Contract             |
 | [ramstge.eos](https://eoseyes.com/account/ramstge.eos)   | Swap Contract              |
 | [rams.eos](https://eoseyes.com/account/rams.eos)         | Inscription Contract       |
@@ -22,8 +22,10 @@ RAM is not only the backbone of the EOS ecosystem, but also the key to innovatio
 | [ramdeposit11](https://eoseyes.com/account/ramdeposit11) | Ram Deposit Account        |
 | [strampoolram](https://eoseyes.com/account/strampoolram) | STRAM reward contract      |
 | [ramx.eos](https://eoseyes.com/account/ramx.eos)         | RAM pending order contract |
-| [honor.rms](https://eoseyes.com/account/honor.rms)       | Veteran contract      |
-| [token.rms](https://eoseyes.com/account/token.rms)       | V Token contract  |
+| [honor.rms](https://eoseyes.com/account/honor.rms)       | Veteran contract           |
+| [token.rms](https://eoseyes.com/account/token.rms)       | V Token contract           |
+| [stake.rms](https://eoseyes.com/account/stake.rms)       | V Stake contract           |
+| [miner.rms](https://eoseyes.com/account/miner.rms)       | V Miner contract           |
 
 ## Quickstart
 

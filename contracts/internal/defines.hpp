@@ -1,3 +1,5 @@
+#pragma once
+
 #include <eosio/eosio.hpp>
 #include <eosio/asset.hpp>
 
@@ -16,6 +18,7 @@ static constexpr name RAMS_DAO = "ramsdao.eos"_n;
 static constexpr name TOKEN_RMS = "token.rms"_n;
 static constexpr name RAM_BANK_CONTRACT = "bank.rms"_n;
 static constexpr name STAKE_CONTRACT = "stake.rms"_n;
+static constexpr name MINER_CONTRACT = "miner.rms"_n;
 
 // ADDRESSES
 static constexpr name POOL_REWARD_CONTAINER{"stramreward1"_n};
