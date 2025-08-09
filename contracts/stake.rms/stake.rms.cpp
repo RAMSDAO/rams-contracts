@@ -439,7 +439,7 @@ void stake::batch_update_reward(const name& account, const uint64_t pre_amount, 
 
     stkchangelog_action stkchangelog(get_self(), {get_self(), "active"_n});
     stkchangelog.send(account, pre_amount, now_amount);
-    miner_notify(account);
+    miner_notify(account, pre_amount);
 }
 
 template <typename T>
@@ -482,6 +482,6 @@ void stake::ram_transfer(const name& from, const name& to, const int64_t bytes, 
     action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
 }
 
-void stake::miner_notify(const name& account) {
-    action(permission_level{_self, "active"_n}, MINER_CONTRACT, "stakechange"_n, make_tuple(account)).send();
+void stake::miner_notify(const name& account, const uint64_t pre_amount) {
+    action(permission_level{_self, "active"_n}, MINER_CONTRACT, "stakechange"_n, make_tuple(account, pre_amount)).send();
 }

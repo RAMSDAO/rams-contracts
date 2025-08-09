@@ -43,7 +43,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
      * @param pool_id - Pool ID
      */
     [[eosio::action]]
-    void claim(const name& user, uint64_t pool_id);
+    void claim(const name& user, const uint64_t pool_id);
 
     /**
      * @brief Notification interface from stake.rms contract: Called when a user's staked amount changes
@@ -55,7 +55,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
      * It is responsible for updating the user's reward data.
      */
     [[eosio::action]]
-    void stakechange(const name& user);
+    void stakechange(const name& user, const uint64_t pre_amount);
 
 #ifdef DEBUG
     ACTION clearpool(const uint64_t pool_id);
@@ -92,7 +92,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     // Get the total staked amount from the stake.rms contract
     uint64_t get_total_stake_v();
     // Update a user's reward status
-    void update_user_rewards(const name& user, uint64_t pool_id);
+    void update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_amount);
     // Update a pool's reward status
-    void updatepool(uint64_t pool_id);
+    void updatepool(const uint64_t pool_id);
 };

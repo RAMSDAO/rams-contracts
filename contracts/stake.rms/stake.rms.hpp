@@ -269,5 +269,5 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
                                                const rent_token_index::const_iterator& rent_token_itr);
 
     void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
-    void miner_notify(const name& account);
+    void miner_notify(const name& account, const uint64_t pre_amount);
 };
