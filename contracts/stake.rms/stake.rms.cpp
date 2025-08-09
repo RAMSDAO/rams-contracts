@@ -488,6 +488,7 @@ void stake::batch_update_reward(const name& account, const uint64_t pre_amount, 
 
     stkchangelog_action stkchangelog(get_self(), {get_self(), "active"_n});
     stkchangelog.send(account, pre_amount, now_amount);
+    miner_notify(account, pre_amount);
 }
 
 template <typename T>
