@@ -290,6 +290,57 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
     process_rent_payment(from, borrower, ext_in);
 }
 
+void stake::on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo) {
+    // ignore transfers
+    if (to != get_self()) return;
+
+    const name contract = get_first_receiver();
+    const std::vector<string> parts = rams::utils::split(memo, ",");
+    if (parts.size() > 0 && parts[0] == "repay") {
+        check(parts.size() == 2, "stake.rms::on_ramtransfer: invalid memo");
+        auto repay_account = rams::utils::parse_name(parts[1]);
+        do_repay_ram(from, repay_account, bytes, memo);
+    }
+}
+
+void stake::do_repay_ram(const name& from, const name& borrower, int64_t bytes, const std::string& memo) {
+
+    check(bytes > 0, "stake.rms::do_repay_ram: cannot repay negative amount");
+
+    auto borrow = _borrow.require_find(borrower.value, "stake.rms::repay: [borrows] does not exists");
+    check(borrow->bytes > 0, "stake.rms::repay: the outstanding balance is zero");
+
+    int64_t refund_bytes = 0;
+    int64_t repay_bytes = bytes;
+    if (bytes > borrow->bytes) {
+        refund_bytes = bytes - borrow->bytes;
+        repay_bytes = borrow->bytes;
+    }
+
+    ram_transfer(get_self(), RAM_BANK_CONTRACT, repay_bytes, "repay ram");
+
+    // refund
+    if (refund_bytes > 0) {
+        ram_transfer(get_self(), from, refund_bytes, "refund");
+    }
+
+    _borrow.modify(borrow, same_payer, [&](auto& row) {
+        row.bytes -= repay_bytes;
+    });
+
+    // update stat
+    stat_row stat = _stat.get_or_default();
+    stat.used_amount -= repay_bytes;
+    _stat.set(stat, get_self());
+
+    // log
+    repaylog_action repaylog(get_self(), {get_self(), "active"_n});
+    repaylog.send(borrower, repay_bytes, borrow->bytes);
+
+    statlog_action statlog(get_self(), {get_self(), "active"_n});
+    statlog.send(stat.stake_amount, stat.used_amount);
+}
+
 void stake::claim(const name& account) {
     require_auth(account);
 

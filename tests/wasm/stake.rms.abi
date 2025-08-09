@@ -246,6 +246,24 @@
             ]
         },
         {
+            "name": "repaylog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "int64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
             "name": "restake",
             "base": "",
             "fields": [
@@ -446,6 +464,11 @@
         {
             "name": "rams2v",
             "type": "rams2v",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "repaylog",
+            "type": "repaylog",
             "ricardian_contract": ""
         },
         {

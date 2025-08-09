@@ -60,6 +60,9 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     [[eosio::on_notify("*::transfer")]]
     void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+    [[eosio::on_notify("eosio::ramtransfer")]]
+    void on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo);
+
     [[eosio::action]]
     void claim(const name& account);
 
@@ -94,14 +97,19 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void statlog(const uint64_t total_stake, const uint64_t total_borrow) {
         require_auth(get_self());
     }
-    
+
+    [[eosio::action]]
+    void repaylog(const name& account, const int64_t bytes, const uint64_t total_borrow) {
+        require_auth(get_self());
+    }
 
    using stkchangelog_action = eosio::action_wrapper<"stkchangelog"_n, &stake::stkchangelog>;
    using claimlog_action = eosio::action_wrapper<"claimlog"_n, &stake::claimlog>;
    using addtokenlog_action = eosio::action_wrapper<"addtokenlog"_n, &stake::addtokenlog>;
    using borrowlog_action = eosio::action_wrapper<"borrowlog"_n, &stake::borrowlog>;
    using statlog_action = eosio::action_wrapper<"statlog"_n, &stake::statlog>;
-   
+   using repaylog_action = eosio::action_wrapper<"repaylog"_n, &stake::repaylog>;
+
    #ifdef DEBUG
     [[eosio::action]]
     void cleartable(const name table_name, const std::optional<name> scope = std::nullopt, const std::optional<uint64_t> max_rows = std::nullopt) {
@@ -360,6 +368,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
     void batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount);
     void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
     void ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo);
+    void do_repay_ram(const name& from, const name& borrower, int64_t bytes, const std::string& memo);
 
     template <typename T, typename ITR>
     void update_reward_acc_per_share(const uint64_t total_stake_amount, T& _reward_token, const ITR& reward_itr, const uint64_t reward_amount);

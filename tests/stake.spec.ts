@@ -484,6 +484,19 @@ describe('stake', () => {
             expect(stat.used_amount).toEqual(borrow_amount + init_borrow_amount + "")
         })
 
+        test('repay ram', async () => {
+            const init_borrow_amount = 137438953472
+            const borrow_amount = 1000
+            const repay_amount = 1000
+            await contracts.eosio.actions.ramtransfer(['account2', 'stake.rms', repay_amount, 'repay,account2']).send('account2@active')
+            
+            const borrow_info = stake_rms.getBorrowInfo('account2')
+            expect(borrow_info.bytes).toEqual(borrow_amount - repay_amount)
+
+            const stat = stake_rms.getStat()
+            expect(stat.used_amount).toEqual(init_borrow_amount + "")
+        })
+
         test('claim reward', async () => {
             // First borrow some RAM to generate rent
             await contracts.stake.actions.borrow(['account2', 1000]).send('stake.rms@active')
