@@ -167,7 +167,7 @@ namespace stake_rms {
         init_done: boolean
         min_unstake_amount: number
         unstake_expire_seconds: number
-        max_widthraw_rows: number
+        max_withdraw_rows: number
         max_stake_amount: number
     }
 
@@ -382,7 +382,7 @@ describe('stake', () => {
                     init_done: false,
                     min_unstake_amount: 1024,
                     unstake_expire_seconds: 259200,
-                    max_widthraw_rows: 1000,
+                    max_withdraw_rows: 1000,
                     max_stake_amount: 274877906944
                 }]).send('account1@active'),
                 'missing required authority stake.rms'
@@ -396,7 +396,7 @@ describe('stake', () => {
                 init_done: true,
                 min_unstake_amount: 1024,
                 unstake_expire_seconds: 259200,
-                max_widthraw_rows: 1000,
+                max_withdraw_rows: 1000,
                 max_stake_amount: "274877906944"
             })
         })
@@ -482,6 +482,19 @@ describe('stake', () => {
             
             const stat = stake_rms.getStat()
             expect(stat.used_amount).toEqual(borrow_amount + init_borrow_amount + "")
+        })
+
+        test('repay ram', async () => {
+            const init_borrow_amount = 137438953472
+            const borrow_amount = 1000
+            const repay_amount = 1000
+            await contracts.eosio.actions.ramtransfer(['account2', 'stake.rms', repay_amount, 'repay,account2']).send('account2@active')
+            
+            const borrow_info = stake_rms.getBorrowInfo('account2')
+            expect(borrow_info.bytes).toEqual(borrow_amount - repay_amount)
+
+            const stat = stake_rms.getStat()
+            expect(stat.used_amount).toEqual(init_borrow_amount + "")
         })
 
         test('claim reward', async () => {

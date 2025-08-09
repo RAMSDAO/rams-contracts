@@ -1,13 +1,8 @@
-#include <eosio.token/eosio.token.hpp>
 #include <rambank.eos/rambank.eos.hpp>
+#include <eosio.token/eosio.token.hpp>
 #include <stake.rms/stake.rms.hpp>
-
-#include "../internal/safemath.hpp"
 #include "../internal/utils.hpp"
-
-#ifdef DEBUG
-#include <stake.rms/debug.hpp>
-#endif
+#include "../internal/safemath.hpp"
 
 void stake::init() {
     require_auth(get_self());
@@ -40,7 +35,7 @@ void stake::init() {
         // Migrate user rewards for this rent token
         bank::user_reward_table _user_reward = bank::user_reward_table(RAMBANK_EOS, itr->id);
         reward_index _reward(get_self(), itr->id);
-
+        
         for (auto user_reward_itr = _user_reward.begin(); user_reward_itr != _user_reward.end(); ++user_reward_itr) {
             // Save user_reward to reward table
             _reward.emplace(get_self(), [&](auto& row) {
@@ -68,13 +63,11 @@ void stake::init() {
 
     // Migrate borrow data from rambank
     bank::borrow_table _bank_borrow = bank::borrow_table(RAMBANK_EOS, RAMBANK_EOS.value);
-    uint64_t processed_borrows = 0;
-    uint64_t total_borrow_amount = 0;
-
+    
     for (auto itr = _bank_borrow.begin(); itr != _bank_borrow.end(); ++itr) {
         // Validate account
         check(is_account(itr->account), "stake.rms::init: invalid account name in borrow table");
-
+        
         // Migrate rent data for this borrower
         bank::rent_table _bank_rent = bank::rent_table(RAMBANK_EOS, itr->account.value);
         rent_index _rent(get_self(), itr->account.value);
@@ -103,7 +96,7 @@ void stake::config(const config_row& new_config) {
 
     check(new_config.min_unstake_amount > 0, "stake.rms::config: min_unstake_amount must be greater than 0");
     check(new_config.unstake_expire_seconds > 0, "stake.rms::config: unstake_expire_seconds must be greater than 0");
-    check(new_config.max_widthraw_rows > 0, "stake.rms::config: max_widthraw_rows must be greater than 0");
+    check(new_config.max_withdraw_rows > 0, "stake.rms::config: max_withdraw_rows must be greater than 0");
 
     // check token.rms limit max supply
     token::stats _token_stats_table(TOKEN_RMS, V_SYMBOL.code().raw());
@@ -117,13 +110,14 @@ void stake::config(const config_row& new_config) {
     config_row config = _config.get_or_default();
     config.min_unstake_amount = new_config.min_unstake_amount;
     config.unstake_expire_seconds = new_config.unstake_expire_seconds;
-    config.max_widthraw_rows = new_config.max_widthraw_rows;
+    config.max_withdraw_rows = new_config.max_withdraw_rows;
     config.max_stake_amount = new_config.max_stake_amount;
 
     _config.set(config, get_self());
 }
 
 void stake::on_stake(const name& account, const asset& quantity) {
+
     check(quantity.symbol == V_SYMBOL, "stake.rms::stake: invalid symbol");
     check(quantity.amount > 0, "stake.rms::stake: amount must be greater than 0");
 
@@ -139,7 +133,9 @@ void stake::on_stake(const name& account, const asset& quantity) {
             row.unstaking_amount = 0;
         });
     } else {
-        _stake.modify(stake_itr, get_self(), [&](auto& row) { row.amount += quantity.amount; });
+        _stake.modify(stake_itr, get_self(), [&](auto& row) {
+            row.amount += quantity.amount;
+        });
     }
 
     // update stat
@@ -197,18 +193,21 @@ void stake::restake(const name& account, const uint64_t id) {
     check(current_time.sec_since_epoch() - unstake_itr->unstaking_time.sec_since_epoch() < config.unstake_expire_seconds,
           "stake.rms::restake: Under unstaking has reached its expiry; it cannot be directly restaked");
 
+    auto stake_itr = _stake.require_find(account.value, "stake.rms::restake: account not found in stake table");
+
+    auto unstake_amount = unstake_itr->amount;
+    check(stake_itr->unstaking_amount >= unstake_amount, "stake.rms::restake: unstake amount is greater than total unstaking amount");
     // Remove the unstake entry
     _unstake.erase(unstake_itr);
 
     // Update the stake record
-    auto stake_itr = _stake.require_find(account.value, "stake.rms::restake: account not found in stake table");
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
-        row.unstaking_amount -= unstake_itr->amount;  // Decrement unstaking amount
-        row.amount += unstake_itr->amount;            // Add amount back to the stake
+        row.unstaking_amount -= unstake_amount;  // Decrement unstaking amount
+        row.amount += unstake_amount;            // Add amount back to the stake
     });
 
     // Update reward
-    batch_update_reward(account, stake_itr->amount - unstake_itr->amount, stake_itr->amount);
+    batch_update_reward(account, stake_itr->amount - unstake_amount, stake_itr->amount);
 }
 
 void stake::withdraw(const name& account) {
@@ -224,13 +223,13 @@ void stake::withdraw(const name& account) {
 
     auto unstake_itr = unstake_idx.begin();
     while (unstake_itr != unstake_idx.end()) {
-        if (process_count >= config.max_widthraw_rows) {
+        if (process_count >= config.max_withdraw_rows) {
             break;  // Limit the number of processed unstake records
         }
 
         if (current_time_sec - unstake_itr->unstaking_time.sec_since_epoch() >= config.unstake_expire_seconds) {
             withdraw_amount += unstake_itr->amount;
-            unstake_itr = unstake_idx.erase(unstake_itr);
+            unstake_itr = unstake_idx.erase(unstake_itr); 
         } else {
             break;
         }
@@ -274,7 +273,7 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
     if (to != get_self() || from == POOL_REWARD_CONTAINER) return;
 
     const name contract = get_first_receiver();
-    if (memo == "ignore") {
+    if (memo ==  "ignore"){
         return;
     }
 
@@ -292,6 +291,57 @@ void stake::on_transfer(const name& from, const name& to, const asset& quantity,
     process_rent_payment(from, borrower, ext_in);
 }
 
+void stake::on_ramtransfer(const name& from, const name& to, int64_t bytes, const std::string& memo) {
+    // ignore transfers
+    if (to != get_self()) return;
+
+    const name contract = get_first_receiver();
+    const std::vector<string> parts = rams::utils::split(memo, ",");
+    if (parts.size() > 0 && parts[0] == "repay") {
+        check(parts.size() == 2, "stake.rms::on_ramtransfer: invalid memo");
+        auto repay_account = rams::utils::parse_name(parts[1]);
+        do_repay_ram(from, repay_account, bytes, memo);
+    }
+}
+
+void stake::do_repay_ram(const name& from, const name& borrower, int64_t bytes, const std::string& memo) {
+
+    check(bytes > 0, "stake.rms::do_repay_ram: cannot repay negative amount");
+
+    auto borrow = _borrow.require_find(borrower.value, "stake.rms::repay: [borrows] does not exists");
+    check(borrow->bytes > 0, "stake.rms::repay: the outstanding balance is zero");
+
+    int64_t refund_bytes = 0;
+    int64_t repay_bytes = bytes;
+    if (bytes > borrow->bytes) {
+        refund_bytes = bytes - borrow->bytes;
+        repay_bytes = borrow->bytes;
+    }
+
+    ram_transfer(get_self(), RAM_BANK_CONTRACT, repay_bytes, "repay ram");
+
+    // refund
+    if (refund_bytes > 0) {
+        ram_transfer(get_self(), from, refund_bytes, "refund");
+    }
+
+    _borrow.modify(borrow, same_payer, [&](auto& row) {
+        row.bytes -= repay_bytes;
+    });
+
+    // update stat
+    stat_row stat = _stat.get_or_default();
+    stat.used_amount -= repay_bytes;
+    _stat.set(stat, get_self());
+
+    // log
+    repaylog_action repaylog(get_self(), {get_self(), "active"_n});
+    repaylog.send(borrower, repay_bytes, borrow->bytes);
+
+    statlog_action statlog(get_self(), {get_self(), "active"_n});
+    statlog.send(stat.stake_amount, stat.used_amount);
+}
+
 void stake::claim(const name& account) {
     require_auth(account);
 
@@ -304,6 +354,7 @@ void stake::claim(const name& account) {
     auto total_claimed = 0;
 
     for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
+
         reward_index _reward(get_self(), itr->id);
         auto reward_itr = update_reward(account, stake_amount, stake_amount, _reward, itr);
 
@@ -314,7 +365,9 @@ void stake::claim(const name& account) {
                 row.claimed += claimable;
             });
 
-            _rent_token.modify(itr, same_payer, [&](auto& row) { row.reward_balance -= claimable; });
+            _rent_token.modify(itr, same_payer, [&](auto& row) {
+                row.reward_balance -= claimable;
+            });
 
             token_transfer(get_self(), account, {static_cast<int64_t>(claimable), itr->token}, "claim reward");
             claimlog_action claimlog(get_self(), {get_self(), "active"_n});
@@ -358,13 +411,16 @@ void stake::borrow(const name& contract, const uint64_t bytes) {
     check(is_account(contract), "stake.rms::borrow: account does not exists");
 
     stat_row stat = _stat.get_or_default();
-    check(stat.used_amount + bytes <= stat.stake_amount, "stake.rms::borrow: has exceeded the number of rams that can be borrowed");
+    check(stat.used_amount + bytes <= stat.stake_amount,
+          "stake.rms::borrow: has exceeded the number of rams that can be borrowed");
 
     auto borrow_itr = _borrow.find(contract.value);
 
     // update borrow info
     if (borrow_itr != _borrow.end()) {
-        _borrow.modify(borrow_itr, same_payer, [&](auto& row) { row.bytes += bytes; });
+        _borrow.modify(borrow_itr, same_payer, [&](auto& row) {
+            row.bytes += bytes;
+        });
     } else {
         borrow_itr = _borrow.emplace(get_self(), [&](auto& row) {
             row.account = contract;
@@ -398,7 +454,9 @@ void stake::process_rent_payment(const name& owner, const name& borrower, const 
     check(borrow_itr != _borrow.end() && borrow_itr->bytes > 0, "stake.rms::process_rent_payment: no lending, no rent transferred");
 
     // update rent token
-    rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) { row.total_rent_received += ext_in.quantity.amount; });
+    rent_token_idx.modify(rent_token_itr, same_payer, [&](auto& row) {
+        row.total_rent_received += ext_in.quantity.amount;
+    });
 
     // update rent
     rent_index _rent(get_self(), borrower.value);
@@ -409,7 +467,9 @@ void stake::process_rent_payment(const name& owner, const name& borrower, const 
             row.total_rent_received = ext_in;
         });
     } else {
-        _rent.modify(rent_itr, same_payer, [&](auto& row) { row.total_rent_received += ext_in; });
+        _rent.modify(rent_itr, same_payer, [&](auto& row) {
+            row.total_rent_received += ext_in;
+        });
     }
     // update reward
     auto stat = _stat.get_or_default();
@@ -439,12 +499,12 @@ void stake::batch_update_reward(const name& account, const uint64_t pre_amount, 
 
     stkchangelog_action stkchangelog(get_self(), {get_self(), "active"_n});
     stkchangelog.send(account, pre_amount, now_amount);
-    miner_notify(account, pre_amount);
 }
 
 template <typename T>
-stake::reward_index::const_iterator stake::update_reward(const name& account, const uint64_t& pre_amount, const uint64_t& now_amount, T& _reward,
-                                                         const rent_token_index::const_iterator& rent_token_itr) {
+stake::reward_index::const_iterator stake::update_reward(const name& account, const uint64_t& pre_amount,
+                                                                 const uint64_t& now_amount, T& _reward, 
+                                                                 const rent_token_index::const_iterator& rent_token_itr) {
     auto reward_itr = _reward.find(account.value);
     uint64_t per_debt = 0;
     if (reward_itr != _reward.end()) {
@@ -480,8 +540,4 @@ void stake::token_transfer(const name& from, const name& to, const extended_asse
 
 void stake::ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo) {
     action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
-}
-
-void stake::miner_notify(const name& account, const uint64_t pre_amount) {
-    action(permission_level{_self, "active"_n}, MINER_CONTRACT, "stakechange"_n, make_tuple(account, pre_amount)).send();
 }

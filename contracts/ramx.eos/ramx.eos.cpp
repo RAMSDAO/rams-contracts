@@ -259,6 +259,9 @@ void ramx::cancelallord(const uint16_t max_rows) {
 void ramx::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
     // ignore transfers
     if (to != get_self()) return;
+    if (memo == "ignore"){
+        return;
+    }
 
     const name contract = get_first_receiver();
     extended_asset ext_in = {quantity, contract};
