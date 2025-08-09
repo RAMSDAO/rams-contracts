@@ -63,8 +63,6 @@ void stake::init() {
 
     // Migrate borrow data from rambank
     bank::borrow_table _bank_borrow = bank::borrow_table(RAMBANK_EOS, RAMBANK_EOS.value);
-    uint64_t processed_borrows = 0;
-    uint64_t total_borrow_amount = 0;
     
     for (auto itr = _bank_borrow.begin(); itr != _bank_borrow.end(); ++itr) {
         // Validate account
@@ -98,7 +96,7 @@ void stake::config(const config_row& new_config) {
 
     check(new_config.min_unstake_amount > 0, "stake.rms::config: min_unstake_amount must be greater than 0");
     check(new_config.unstake_expire_seconds > 0, "stake.rms::config: unstake_expire_seconds must be greater than 0");
-    check(new_config.max_widthraw_rows > 0, "stake.rms::config: max_widthraw_rows must be greater than 0");
+    check(new_config.max_withdraw_rows > 0, "stake.rms::config: max_withdraw_rows must be greater than 0");
 
     // check token.rms limit max supply
     token::stats _token_stats_table(TOKEN_RMS, V_SYMBOL.code().raw());
@@ -112,7 +110,7 @@ void stake::config(const config_row& new_config) {
     config_row config = _config.get_or_default();
     config.min_unstake_amount = new_config.min_unstake_amount;
     config.unstake_expire_seconds = new_config.unstake_expire_seconds;
-    config.max_widthraw_rows = new_config.max_widthraw_rows;
+    config.max_withdraw_rows = new_config.max_withdraw_rows;
     config.max_stake_amount = new_config.max_stake_amount;
 
     _config.set(config, get_self());
@@ -225,7 +223,7 @@ void stake::withdraw(const name& account) {
 
     auto unstake_itr = unstake_idx.begin();
     while (unstake_itr != unstake_idx.end()) {
-        if (process_count >= config.max_widthraw_rows) {
+        if (process_count >= config.max_withdraw_rows) {
             break;  // Limit the number of processed unstake records
         }
 

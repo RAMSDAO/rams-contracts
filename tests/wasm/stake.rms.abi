@@ -151,7 +151,7 @@
                     "type": "uint64"
                 },
                 {
-                    "name": "max_widthraw_rows",
+                    "name": "max_withdraw_rows",
                     "type": "uint64"
                 },
                 {
