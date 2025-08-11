@@ -160,9 +160,6 @@ void stake::unstake(const name& account, const uint64_t amount) {
         check(amount >= config.min_unstake_amount, "stake.rms::unstake: unstake amount must be greater than or equal to the minimum unstake amount");
     }
 
-    auto stat = _stat.get_or_default();
-    check(stat.stake_amount >= stat.used_amount + amount, "stake.rms::unstake: unstake amount plus used amount is greater than total stake amount");
-
     // Update the stake record
     _stake.modify(stake_itr, get_self(), [&](auto& row) {
         row.amount -= amount;
@@ -178,6 +175,7 @@ void stake::unstake(const name& account, const uint64_t amount) {
     });
 
     // update stat
+    auto stat = _stat.get_or_default();
     stat.stake_amount -= amount;
     _stat.set(stat, get_self());
 
