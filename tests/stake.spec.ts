@@ -12,6 +12,7 @@ const contracts = {
     stake: blockchain.createContract('stake.rms', 'tests/wasm/stake.rms', true),
     rambank: blockchain.createContract('rambank.eos', 'tests/wasm/rambank.eos', true),
     honor: blockchain.createContract('honor.rms', 'tests/wasm/honor.rms', true),
+    miner: blockchain.createContract('miner.rms', 'tests/wasm/miner.rms', true),
 }
 
 // accounts
