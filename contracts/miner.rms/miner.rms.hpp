@@ -8,6 +8,7 @@
 #include "../internal/defines.hpp"
 
 using namespace eosio;
+using std::string;
 
 /**
  * @brief miner.rms contract
