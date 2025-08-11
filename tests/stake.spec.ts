@@ -436,6 +436,14 @@ describe('stake', () => {
             expect(unstake_list[0].amount).toEqual(unstake_amount)
         })
 
+        test('unstake V token with insufficient amount', async () => {
+            const unstake_amount = 1000000
+            await expectToThrow(
+                contracts.stake.actions.unstake(['account1', unstake_amount]).send('account1@active'),
+                'eosio_assert: stake.rms::unstake: unstake amount is greater than total stake amount'
+            )
+        })
+
         test('restake V token', async () => {
             const unstake_list = stake_rms.getUnstake('account1')
             const unstake_id = unstake_list[0].id
