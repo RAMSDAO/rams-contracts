@@ -349,7 +349,6 @@ void stake::claim(const name& account) {
     auto stake_amount = stake_itr->amount;
 
     auto stat = _stat.get_or_default();
-    auto total_stake_amount = stat.stake_amount;
     auto total_claimed = 0;
 
     for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
