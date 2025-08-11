@@ -349,7 +349,6 @@ void stake::claim(const name& account) {
     auto stake_amount = stake_itr->amount;
 
     auto stat = _stat.get_or_default();
-    auto total_stake_amount = stat.stake_amount;
     auto total_claimed = 0;
 
     for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
@@ -406,12 +405,8 @@ void stake::borrow(const name& contract, const uint64_t bytes) {
     check(bytes > 0, "stake.rms::borrow: cannot borrow negative amount");
     check(is_account(contract), "stake.rms::borrow: account does not exists");
 
-    stat_row stat = _stat.get_or_default();
-    check(stat.used_amount + bytes <= stat.stake_amount, "stake.rms::borrow: has exceeded the number of rams that can be borrowed");
-
-    auto borrow_itr = _borrow.find(contract.value);
-
     // update borrow info
+    auto borrow_itr = _borrow.find(contract.value);
     if (borrow_itr != _borrow.end()) {
         _borrow.modify(borrow_itr, same_payer, [&](auto& row) { row.bytes += bytes; });
     } else {
@@ -422,6 +417,7 @@ void stake::borrow(const name& contract, const uint64_t bytes) {
     }
 
     // update stat
+    stat_row stat = _stat.get_or_default();
     stat.used_amount += bytes;
     _stat.set(stat, get_self());
 
