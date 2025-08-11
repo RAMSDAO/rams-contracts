@@ -125,6 +125,7 @@ void miner::update_user_rewards(const name& user, const uint64_t pool_id, const 
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
+    const symbol reward_symbol = pool_itr->reward_per_block.symbol;
 
     const uint64_t current_stake_amount = get_stake_v(user);
     const uint128_t new_debt = (uint128_t)current_stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
@@ -143,19 +144,31 @@ void miner::update_user_rewards(const name& user, const uint64_t pool_id, const 
         });
     } else {
         if (current_stake_amount == 0) {
-            return;
+            if (pre_amount > 0) {
+                const uint128_t pre_unclaimed_amount = (uint128_t)pre_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
+                users.emplace(get_self(), [&](auto& u) {
+                    u.user = user;
+                    u.stake_amount = current_stake_amount;
+                    u.unclaimed = asset(pre_unclaimed_amount, reward_symbol);
+                    u.claimed = asset(0, reward_symbol);
+                    u.debt = new_debt;
+                });
+            } else {
+                return;
+            }
+        } else {
+            uint128_t initial_unclaimed_amount = 0;
+            if (pre_amount == -1) {
+                initial_unclaimed_amount = new_debt;
+            }
+            users.emplace(get_self(), [&](auto& u) {
+                u.user = user;
+                u.stake_amount = current_stake_amount;
+                u.unclaimed = asset(initial_unclaimed_amount, reward_symbol);
+                u.claimed = asset(0, reward_symbol);
+                u.debt = new_debt;
+            });
         }
-        uint128_t initial_unclaimed_amount = 0;
-        if (pre_amount == -1) {
-            initial_unclaimed_amount = new_debt;
-        }
-        users.emplace(get_self(), [&](auto& u) {
-            u.user = user;
-            u.stake_amount = current_stake_amount;
-            u.unclaimed = asset(initial_unclaimed_amount, pool_itr->reward_per_block.symbol);
-            u.claimed = asset(0, pool_itr->reward_per_block.symbol);
-            u.debt = new_debt;
-        });
     }
 }
 
