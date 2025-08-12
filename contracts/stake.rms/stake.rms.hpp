@@ -265,7 +265,7 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
 
     // private methods
     void on_stake(const name& account, const asset& quantity);
-    void batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount);
+    void batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount, const uint64_t pre_total_stake_amount);
     void token_transfer(const name& from, const name& to, const extended_asset& value, const string& memo);
     void ram_transfer(const name& from, const name& to, const int64_t bytes, const string& memo);
     void do_repay_ram(const name& from, const name& borrower, int64_t bytes, const std::string& memo);
@@ -278,5 +278,5 @@ class [[eosio::contract("stake.rms")]] stake : public contract {
                                                const rent_token_index::const_iterator& rent_token_itr);
 
     void process_rent_payment(const name& from, const name& borrower, const extended_asset& ext_in);
-    void miner_notify(const name& account, const uint64_t pre_amount);
+    void miner_notify(const name& account, const uint64_t pre_total_stake_amount);
 };

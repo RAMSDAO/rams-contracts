@@ -16,6 +16,7 @@ void miner::addpool(const name& reward_token, const asset& reward_per_block) {
         p.reward_per_block = reward_per_block;
         p.last_reward_block = current_block_number();
         p.acc_reward_per_share = 0;
+        p.initialized = false;
     });
 }
 
@@ -48,11 +49,62 @@ void miner::setpool(uint64_t pool_id, const asset& reward_per_block) {
     });
 }
 
+void miner::initusers(uint64_t pool_id, uint64_t limit) {
+    require_auth(get_self());
+
+    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+    // Once initialized, it cannot be re-initialized to prevent abuse.
+    check(!pool_itr->initialized, "Pool is already initialized");
+
+    // Update the pool's state before starting initialization
+    updatepool(pool_id, get_total_stake_v());
+    // After update, refresh the iterator to get the latest acc_reward_per_share
+    pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+
+    userinfo_index users(get_self(), pool_id);
+    stake::stake_index stakers(STAKE_CONTRACT, STAKE_CONTRACT.value);
+
+    // Find the last user processed. For the first call, this will be begin().
+    auto staker_itr = stakers.begin();
+    auto last_user_processed = users.rbegin();
+    if (last_user_processed != users.rend()) {
+        staker_itr = stakers.find(last_user_processed->user.value);
+        if (staker_itr != stakers.end()) {
+            staker_itr++;  // Start from the next user
+        }
+    }
+
+    uint64_t count = 0;
+    while (staker_itr != stakers.end() && count < limit) {
+        // Only add users who have a stake
+        if (staker_itr->amount > 0) {
+            users.emplace(get_self(), [&](auto& u) {
+                u.user = staker_itr->account;
+                u.stake_amount = staker_itr->amount;
+                u.unclaimed = asset(0, pool_itr->reward_per_block.symbol);
+                u.claimed = asset(0, pool_itr->reward_per_block.symbol);
+                u.debt = (uint128_t)u.stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
+            });
+            count++;
+        }
+        staker_itr++;
+    }
+
+    // If we have reached the end of the stakers table, mark the pool as fully initialized
+    if (staker_itr == stakers.end()) {
+        _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.initialized = true; });
+    }
+}
+
 void miner::claim(const name& user, const uint64_t pool_id) {
     require_auth(user);
 
-    // 1. Update user's reward data
-    update_user_rewards(user, pool_id, -1);
+    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+    check(pool_itr->initialized, "Pool is not yet active. Initialization is in progress.");
+
+    // Update user's reward data
+    const uint64_t pre_total_stake_amount = get_total_stake_v();
+    update_user_rewards(user, pool_id, pre_total_stake_amount);
 
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
@@ -61,27 +113,24 @@ void miner::claim(const name& user, const uint64_t pool_id) {
     asset to_claim = user_itr->unclaimed;
     check(to_claim.amount > 0, "No rewards to claim");
 
-    // 2. Get pool information to send tokens
-    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
-
-    // 3. Send reward tokens
+    // Send reward tokens
     action(permission_level{get_self(), "active"_n}, pool_itr->reward_token, "transfer"_n,
            std::make_tuple(get_self(), user, to_claim, std::string("Claim rewards from pool " + std::to_string(pool_id))))
         .send();
 
-    // 4. Update user information
+    // Update user information
     users.modify(user_itr, same_payer, [&](auto& u) {
         u.claimed += to_claim;
         u.unclaimed.amount = 0;
     });
 }
 
-void miner::stakechange(const name& user, const uint64_t pre_amount) {
+void miner::stakechange(const name& user, const uint64_t pre_total_stake_amount) {
     require_auth(STAKE_CONTRACT);
-    check(pre_amount >= 0, "Previous stake amount must be non-negative");
-
     for (auto& pool : _poolinfo) {
-        update_user_rewards(user, pool.id, static_cast<int64_t>(pre_amount));
+        if (pool.initialized) {
+            update_user_rewards(user, pool.id, pre_total_stake_amount);
+        }
     }
 }
 
@@ -89,6 +138,11 @@ void miner::updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_am
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
 
     uint32_t current_block = current_block_number();
+    if (!pool_itr->initialized) {
+        _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.last_reward_block = current_block; });
+        return;
+    }
+
     if (current_block <= pool_itr->last_reward_block) {
         return;
     }
@@ -119,23 +173,16 @@ void miner::updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_am
     });
 }
 
-void miner::update_user_rewards(const name& user, const uint64_t pool_id, const int64_t pre_amount) {
-    // Calculate the previous total stake amount
-    uint64_t pre_total_stake_amount = get_total_stake_v();
-    const uint64_t current_stake_amount = get_stake_v(user);
-    if (pre_amount != -1) {
-        if (current_stake_amount >= pre_amount) {
-            pre_total_stake_amount -= static_cast<uint64_t>(pre_amount);
-        } else {
-            pre_total_stake_amount += static_cast<uint64_t>(pre_amount);
-        }
-    }
+void miner::update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_total_stake_amount) {
     updatepool(pool_id, pre_total_stake_amount);
 
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
     const symbol reward_symbol = pool_itr->reward_per_block.symbol;
+
+    uint64_t current_stake_amount = get_stake_v(user);
+    if (user_itr == users.end() && current_stake_amount == 0) return;
 
     const uint128_t new_debt = (uint128_t)current_stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
 
@@ -152,32 +199,13 @@ void miner::update_user_rewards(const name& user, const uint64_t pool_id, const 
             u.debt = new_debt;
         });
     } else {
-        if (current_stake_amount == 0) {
-            if (pre_amount > 0) {
-                const uint128_t pre_unclaimed_amount = (uint128_t)pre_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
-                users.emplace(get_self(), [&](auto& u) {
-                    u.user = user;
-                    u.stake_amount = current_stake_amount;
-                    u.unclaimed = asset(pre_unclaimed_amount, reward_symbol);
-                    u.claimed = asset(0, reward_symbol);
-                    u.debt = new_debt;
-                });
-            } else {
-                return;
-            }
-        } else {
-            uint128_t initial_unclaimed_amount = 0;
-            if (pre_amount == -1) {
-                initial_unclaimed_amount = new_debt;
-            }
-            users.emplace(get_self(), [&](auto& u) {
-                u.user = user;
-                u.stake_amount = current_stake_amount;
-                u.unclaimed = asset(initial_unclaimed_amount, reward_symbol);
-                u.claimed = asset(0, reward_symbol);
-                u.debt = new_debt;
-            });
-        }
+        users.emplace(get_self(), [&](auto& u) {
+            u.user = user;
+            u.stake_amount = current_stake_amount;
+            u.unclaimed = asset(0, reward_symbol);
+            u.claimed = asset(0, reward_symbol);
+            u.debt = new_debt;
+        });
     }
 }
 

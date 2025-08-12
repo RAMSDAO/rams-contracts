@@ -38,6 +38,17 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     void setpool(uint64_t pool_id, const asset& reward_per_block);
 
     /**
+     * @brief Admin: Initialize user snapshots for a pool in batches.
+     * This action must be called after adding a pool to start mining for existing stakers.
+     * Call this action repeatedly until it no longer processes users.
+     *
+     * @param pool_id - The ID of the pool to initialize.
+     * @param limit - The maximum number of users to process in one transaction.
+     */
+    [[eosio::action]]
+    void initusers(uint64_t pool_id, uint64_t limit);
+
+    /**
      * @brief User: Claim rewards from a specified pool
      *
      * @param user - User claiming the rewards
@@ -56,7 +67,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
      * It is responsible for updating the user's reward data.
      */
     [[eosio::action]]
-    void stakechange(const name& user, const uint64_t pre_amount);
+    void stakechange(const name& user, const uint64_t pre_total_stake_amount);
 
 #ifdef DEBUG
     ACTION clearpool(const uint64_t pool_id);
@@ -70,6 +81,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
         asset reward_per_block;          // Reward produced per block
         uint32_t last_reward_block;      // Block height of last reward update
         uint128_t acc_reward_per_share;  // Accumulated reward per staked unit (multiplied by precision factor)
+        bool initialized = false;        // Add a flag to indicate if the pool is fully initialized
 
         uint64_t primary_key() const { return id; }
     };
@@ -78,11 +90,11 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
 
     // scope by pool id
     struct [[eosio::table]] userinfo_row {
-        name user;  // Username
-        uint64_t stake_amount;
-        asset unclaimed;  // Unclaimed rewards (accumulated but not settled)
-        asset claimed;    // Total rewards claimed
-        uint128_t debt;   // Reward debt
+        name user;              // Username
+        uint64_t stake_amount;  // Last updated stake amount
+        asset unclaimed;        // Unclaimed rewards (accumulated but not settled)
+        asset claimed;          // Total rewards claimed
+        uint128_t debt;         // Reward debt
 
         uint64_t primary_key() const { return user.value; }
     };
@@ -93,7 +105,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     // Get the total staked amount from the stake.rms contract
     uint64_t get_total_stake_v();
     // Update a user's reward status
-    void update_user_rewards(const name& user, const uint64_t pool_id, const int64_t pre_amount);
+    void update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_total_stake_amount);
     // Update a pool's reward status
     void updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_amount);
 };
