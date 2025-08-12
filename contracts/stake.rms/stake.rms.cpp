@@ -208,6 +208,11 @@ void stake::restake(const name& account, const uint64_t id) {
         row.amount += unstake_amount;            // Add amount back to the stake
     });
 
+    // update stat
+    auto stat = _stat.get_or_default();
+    stat.stake_amount += unstake_amount;
+    _stat.set(stat, get_self());
+
     // Update reward
     batch_update_reward(account, stake_itr->amount - unstake_amount, stake_itr->amount);
 }
