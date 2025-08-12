@@ -55,11 +55,10 @@ void miner::initusers(uint64_t pool_id, uint64_t limit) {
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     // Once initialized, it cannot be re-initialized to prevent abuse.
     check(!pool_itr->initialized, "Pool is already initialized");
+    check(pool_itr->acc_reward_per_share == 0, "acc_reward_per_share must be 0 during init");
 
     // Update the pool's state before starting initialization
-    updatepool(pool_id, get_total_stake_v());
-    // After update, refresh the iterator to get the latest acc_reward_per_share
-    pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+    _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.last_reward_block = current_block_number(); });
 
     userinfo_index users(get_self(), pool_id);
     stake::stake_index stakers(STAKE_CONTRACT, STAKE_CONTRACT.value);
@@ -92,7 +91,10 @@ void miner::initusers(uint64_t pool_id, uint64_t limit) {
 
     // If we have reached the end of the stakers table, mark the pool as fully initialized
     if (staker_itr == stakers.end()) {
-        _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.initialized = true; });
+        _poolinfo.modify(pool_itr, same_payer, [&](auto& p) {
+            p.initialized = true;
+            p.last_reward_block = current_block_number();
+        });
     }
 }
 
@@ -103,8 +105,7 @@ void miner::claim(const name& user, const uint64_t pool_id) {
     check(pool_itr->initialized, "Pool is not yet active. Initialization is in progress.");
 
     // Update user's reward data
-    const uint64_t pre_total_stake_amount = get_total_stake_v();
-    update_user_rewards(user, pool_id, pre_total_stake_amount);
+    update_user_rewards(user, pool_id, get_total_stake_v());
 
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
@@ -136,7 +137,6 @@ void miner::stakechange(const name& user, const uint64_t pre_total_stake_amount)
 
 void miner::updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_amount) {
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
-
     uint32_t current_block = current_block_number();
     if (!pool_itr->initialized) {
         _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.last_reward_block = current_block; });
