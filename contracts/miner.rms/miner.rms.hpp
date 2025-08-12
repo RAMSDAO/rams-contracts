@@ -93,7 +93,7 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     // Get the total staked amount from the stake.rms contract
     uint64_t get_total_stake_v();
     // Update a user's reward status
-    void update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_amount);
+    void update_user_rewards(const name& user, const uint64_t pool_id, const int64_t pre_amount);
     // Update a pool's reward status
-    void updatepool(const uint64_t pool_id);
+    void updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_amount);
 };

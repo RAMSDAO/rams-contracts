@@ -81,11 +81,11 @@ void miner::stakechange(const name& user, const uint64_t pre_amount) {
     check(pre_amount >= 0, "Previous stake amount must be non-negative");
 
     for (auto& pool : _poolinfo) {
-        update_user_rewards(user, pool.id, pre_amount);
+        update_user_rewards(user, pool.id, static_cast<int64_t>(pre_amount));
     }
 }
 
-void miner::updatepool(const uint64_t pool_id) {
+void miner::updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_amount) {
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
 
     uint32_t current_block = current_block_number();
@@ -98,8 +98,8 @@ void miner::updatepool(const uint64_t pool_id) {
         return;
     }
 
-    uint64_t total_staked_v_amount = get_total_stake_v();
-    if (total_staked_v_amount == 0) {
+    if (pre_total_stake_amount == 0) {
+        // This situation is impossible to occur
         // If total staking is 0, no one is mining, just update the block number
         _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.last_reward_block = current_block; });
         return;
@@ -110,7 +110,7 @@ void miner::updatepool(const uint64_t pool_id) {
     uint128_t total_reward = (uint128_t)pool_itr->reward_per_block.amount * block_span;
 
     // Calculate how much reward should be increased per staked unit
-    uint128_t reward_per_share_increase = (total_reward * PRECISION_FACTOR) / total_staked_v_amount;
+    uint128_t reward_per_share_increase = (total_reward * PRECISION_FACTOR) / pre_total_stake_amount;
 
     // Update pool information
     _poolinfo.modify(pool_itr, same_payer, [&](auto& p) {
@@ -119,15 +119,24 @@ void miner::updatepool(const uint64_t pool_id) {
     });
 }
 
-void miner::update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_amount) {
-    updatepool(pool_id);
+void miner::update_user_rewards(const name& user, const uint64_t pool_id, const int64_t pre_amount) {
+    // Calculate the previous total stake amount
+    uint64_t pre_total_stake_amount = get_total_stake_v();
+    const uint64_t current_stake_amount = get_stake_v(user);
+    if (pre_amount != -1) {
+        if (current_stake_amount >= pre_amount) {
+            pre_total_stake_amount -= static_cast<uint64_t>(pre_amount);
+        } else {
+            pre_total_stake_amount += static_cast<uint64_t>(pre_amount);
+        }
+    }
+    updatepool(pool_id, pre_total_stake_amount);
 
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
     const symbol reward_symbol = pool_itr->reward_per_block.symbol;
 
-    const uint64_t current_stake_amount = get_stake_v(user);
     const uint128_t new_debt = (uint128_t)current_stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
 
     if (user_itr != users.end()) {
