@@ -67,7 +67,10 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
      * It is responsible for updating the user's reward data.
      */
     [[eosio::action]]
-    void stakechange(const name& user, const uint64_t pre_total_stake_amount);
+    void stakechange(const name& user);
+
+    [[eosio::on_notify("*::transfer")]]
+    void on_transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
 #ifdef DEBUG
     ACTION clearpool(const uint64_t pool_id);
@@ -75,12 +78,20 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
 #endif
 
    private:
+    struct [[eosio::table("stat")]] stat_row {
+        uint64_t last_stake_amount = 0;  // last total stake amount
+    };
+    typedef eosio::singleton<"stat"_n, stat_row> stat_index;
+    stat_index _stat = stat_index(get_self(), get_self().value);
+
     struct [[eosio::table]] poolinfo_row {
         uint64_t id;                     // Unique pool ID
         name reward_token;               // Reward token contract
         asset reward_per_block;          // Reward produced per block
         uint32_t last_reward_block;      // Block height of last reward update
         uint128_t acc_reward_per_share;  // Accumulated reward per staked unit (multiplied by precision factor)
+        asset total_distributed_reward;  // Cumulative total reward distributed
+        asset total_claimed_reward;      // Accumulate the rewards already claimed
         bool initialized = false;        // Add a flag to indicate if the pool is fully initialized
 
         uint64_t primary_key() const { return id; }
@@ -105,7 +116,8 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     // Get the total staked amount from the stake.rms contract
     uint64_t get_total_stake_v();
     // Update a user's reward status
-    void update_user_rewards(const name& user, const uint64_t pool_id, const uint64_t pre_total_stake_amount);
+    void update_user_rewards(const name& user, const uint64_t pool_id);
     // Update a pool's reward status
-    void updatepool(const uint64_t pool_id, const uint64_t pre_total_stake_amount);
+    void updatepool(const uint64_t pool_id);
+    void update_last_stake_amount();
 };
