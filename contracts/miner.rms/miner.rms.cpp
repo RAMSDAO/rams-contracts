@@ -110,10 +110,13 @@ void miner::syncuser(uint64_t pool_id, const name& user) {
 
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
-    check(user_itr == users.end(), "User already exists in this pool");
     uint64_t current_stake_amount = get_stake_v(user);
+    if (user_itr == users.end() && current_stake_amount == 0) {
+        check(false, "Cannot sync user with zero stake who has no record.");
+        return;
+    }
+
     updatepool(pool_id);
-    // Re-fetch pool info after update
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     const uint128_t current_debt = (uint128_t)current_stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
     if (user_itr != users.end()) {
@@ -122,10 +125,6 @@ void miner::syncuser(uint64_t pool_id, const name& user) {
             u.debt = current_debt;
         });
     } else {
-        if (current_stake_amount == 0) {
-            check(false, "Cannot sync user with zero stake who has no record.");
-            return;
-        }
         users.emplace(get_self(), [&](auto& u) {
             u.user = user;
             u.stake_amount = current_stake_amount;
