@@ -244,7 +244,6 @@ void miner::on_transfer(const name& from, const name& to, const asset& quantity,
     if (memo == "ignore") {
         return;
     }
-    // 把memo字符串转成uint64_t
     uint64_t pool_id = std::stoull(memo);
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     check(pool_itr->reward_per_block.symbol == quantity.symbol, "Transfer token does not match pool reward token");
