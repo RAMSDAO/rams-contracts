@@ -108,27 +108,32 @@ void miner::initusers(uint64_t pool_id, uint64_t limit) {
 void miner::syncuser(uint64_t pool_id, const name& user) {
     require_auth(get_self());
 
-    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     userinfo_index users(get_self(), pool_id);
     auto user_itr = users.find(user.value);
     check(user_itr == users.end(), "User already exists in this pool");
     uint64_t current_stake_amount = get_stake_v(user);
-    // If the user has no stake now, there's nothing to do.
-    if (current_stake_amount == 0) {
-        check(false, "Cannot sync user with zero stake who has no record.");
-    }
     updatepool(pool_id);
     // Re-fetch pool info after update
-    pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
+    auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
     const uint128_t current_debt = (uint128_t)current_stake_amount * pool_itr->acc_reward_per_share / PRECISION_FACTOR;
-
-    users.emplace(get_self(), [&](auto& u) {
-        u.user = user;
-        u.stake_amount = current_stake_amount;
-        u.unclaimed = asset(0, pool_itr->reward_per_block.symbol);
-        u.claimed = asset(0, pool_itr->reward_per_block.symbol);
-        u.debt = current_debt;
-    });
+    if (user_itr != users.end()) {
+        users.modify(user_itr, same_payer, [&](auto& u) {
+            u.stake_amount = current_stake_amount;
+            u.debt = current_debt;
+        });
+    } else {
+        if (current_stake_amount == 0) {
+            check(false, "Cannot sync user with zero stake who has no record.");
+            return;
+        }
+        users.emplace(get_self(), [&](auto& u) {
+            u.user = user;
+            u.stake_amount = current_stake_amount;
+            u.unclaimed = asset(0, pool_itr->reward_per_block.symbol);
+            u.claimed = asset(0, pool_itr->reward_per_block.symbol);
+            u.debt = current_debt;
+        });
+    }
 }
 
 void miner::claim(const name& user, const uint64_t pool_id) {
