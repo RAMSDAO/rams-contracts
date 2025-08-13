@@ -141,11 +141,10 @@ void stake::on_stake(const name& account, const asset& quantity) {
     }
 
     // update stat
-    const uint64_t pre_total_stake_amount = stat.stake_amount;
     stat.stake_amount += quantity.amount;
     _stat.set(stat, get_self());
 
-    batch_update_reward(account, stake_itr->amount - quantity.amount, stake_itr->amount, pre_total_stake_amount);
+    batch_update_reward(account, stake_itr->amount - quantity.amount, stake_itr->amount);
 }
 
 void stake::unstake(const name& account, const uint64_t amount) {
@@ -177,12 +176,11 @@ void stake::unstake(const name& account, const uint64_t amount) {
 
     // update stat
     auto stat = _stat.get_or_default();
-    const uint64_t pre_total_stake_amount = stat.stake_amount;
     stat.stake_amount -= amount;
     _stat.set(stat, get_self());
 
     // Update reward
-    batch_update_reward(account, stake_itr->amount + amount, stake_itr->amount, pre_total_stake_amount);
+    batch_update_reward(account, stake_itr->amount + amount, stake_itr->amount);
 }
 
 void stake::restake(const name& account, const uint64_t id) {
@@ -212,12 +210,11 @@ void stake::restake(const name& account, const uint64_t id) {
 
     // update stat
     auto stat = _stat.get_or_default();
-    const uint64_t pre_total_stake_amount = stat.stake_amount;
     stat.stake_amount += unstake_amount;
     _stat.set(stat, get_self());
 
     // Update reward
-    batch_update_reward(account, stake_itr->amount - unstake_amount, stake_itr->amount, pre_total_stake_amount);
+    batch_update_reward(account, stake_itr->amount - unstake_amount, stake_itr->amount);
 }
 
 void stake::withdraw(const name& account) {
@@ -274,8 +271,8 @@ void stake::rams2v(const name& account, const uint64_t amount) {
     _stake.modify(rams_dao_itr, same_payer, [&](auto& row) { row.amount -= amount; });
 
     // todo reward calculation
-    batch_update_reward(account, account_itr->amount - amount, account_itr->amount, _stat.get().stake_amount);
-    batch_update_reward(RAMS_DAO, rams_dao_itr->amount + amount, rams_dao_itr->amount, _stat.get().stake_amount);
+    batch_update_reward(account, account_itr->amount - amount, account_itr->amount);
+    batch_update_reward(RAMS_DAO, rams_dao_itr->amount + amount, rams_dao_itr->amount);
 }
 
 void stake::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -484,7 +481,7 @@ void stake::update_reward_acc_per_share(const uint64_t total_stake_amount, T& _r
     });
 }
 
-void stake::batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount, const uint64_t pre_total_stake_amount) {
+void stake::batch_update_reward(const name& account, const uint64_t pre_amount, const uint64_t now_amount) {
     for (auto itr = _rent_token.begin(); itr != _rent_token.end(); ++itr) {
         reward_index _reward(get_self(), itr->id);
         update_reward(account, pre_amount, now_amount, _reward, itr);
@@ -492,7 +489,7 @@ void stake::batch_update_reward(const name& account, const uint64_t pre_amount, 
 
     stkchangelog_action stkchangelog(get_self(), {get_self(), "active"_n});
     stkchangelog.send(account, pre_amount, now_amount);
-    miner_notify(account, pre_total_stake_amount);
+    miner_notify(account);
 }
 
 template <typename T>
@@ -535,6 +532,6 @@ void stake::ram_transfer(const name& from, const name& to, const int64_t bytes, 
     action(permission_level{from, "active"_n}, EOSIO, "ramtransfer"_n, make_tuple(from, to, bytes, memo)).send();
 }
 
-void stake::miner_notify(const name& account, const uint64_t pre_total_stake_amount) {
-    action(permission_level{_self, "active"_n}, MINER_CONTRACT, "stakechange"_n, make_tuple(account, pre_total_stake_amount)).send();
+void stake::miner_notify(const name& account) {
+    action(permission_level{_self, "active"_n}, MINER_CONTRACT, "stakechange"_n, make_tuple(account)).send();
 }
