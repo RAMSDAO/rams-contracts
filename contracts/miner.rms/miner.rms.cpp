@@ -49,7 +49,6 @@ void miner::setpool(uint64_t pool_id, const asset& reward_per_block) {
         p.last_reward_block = last_reward_block_update;
         p.reward_per_block = reward_per_block;
     });
-    update_last_stake_amount();
 }
 
 void miner::initusers(uint64_t pool_id, uint64_t limit) {
