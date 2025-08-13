@@ -260,7 +260,11 @@ uint64_t miner::get_total_stake_v() {
     return stat.stake_amount;
 }
 
-void miner::update_last_stake_amount() { _stat.set({.last_stake_amount = get_total_stake_v()}, same_payer); }
+void miner::update_last_stake_amount() {
+    auto stat = _stat.get_or_default();
+    stat.last_stake_amount = get_total_stake_v();
+    _stat.set(stat, get_self());
+}
 
 void miner::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
     if (from == _self || to != _self) {
