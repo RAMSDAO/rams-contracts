@@ -247,6 +247,6 @@ void miner::on_transfer(const name& from, const name& to, const asset& quantity,
     }
     uint64_t pool_id = std::stoull(memo);
     auto pool_itr = _poolinfo.require_find(pool_id, "Pool not found");
-    check(pool_itr->reward_per_block.symbol == quantity.symbol, "Transfer token does not match pool reward token");
+    check(pool_itr->reward_token == get_first_receiver() && pool_itr->reward_per_block.symbol == quantity.symbol, "Transfer token does not match pool reward token");
     _poolinfo.modify(pool_itr, same_payer, [&](auto& p) { p.total_distributed_reward += quantity; });
 }
