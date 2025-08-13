@@ -119,4 +119,5 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     void update_user_rewards(const name& user, const uint64_t pool_id);
     // Update a pool's reward status
     void updatepool(const uint64_t pool_id);
+    void update_last_stake_amount();
 };

@@ -34,7 +34,7 @@ void miner::setpool(uint64_t pool_id, const asset& reward_per_block) {
     uint32_t current_block = current_block_number();
 
     if (current_block > pool_itr->last_reward_block && pool_itr->reward_per_block.amount > 0) {
-        uint64_t total_staked_v_amount = get_total_stake_v();
+        uint64_t total_staked_v_amount = _stat.get().last_stake_amount;
         if (total_staked_v_amount > 0) {
             uint32_t block_span = current_block - pool_itr->last_reward_block;
             uint128_t total_reward = (uint128_t)pool_itr->reward_per_block.amount * block_span;
@@ -49,6 +49,7 @@ void miner::setpool(uint64_t pool_id, const asset& reward_per_block) {
         p.last_reward_block = last_reward_block_update;
         p.reward_per_block = reward_per_block;
     });
+    update_last_stake_amount();
 }
 
 void miner::initusers(uint64_t pool_id, uint64_t limit) {
@@ -100,8 +101,7 @@ void miner::initusers(uint64_t pool_id, uint64_t limit) {
         stat_row stat = _stat.get_or_default();
         if (stat.last_stake_amount == 0) {
             // Only one initialization is needed
-            stat.last_stake_amount = get_total_stake_v();
-            _stat.set(stat, get_self());
+            update_last_stake_amount();
         }
     }
 }
@@ -146,9 +146,7 @@ void miner::stakechange(const name& user) {
             update_user_rewards(user, pool.id);
         }
     }
-    stat_row stat = _stat.get_or_default();
-    stat.last_stake_amount = get_total_stake_v();
-    _stat.set(stat, get_self());
+    update_last_stake_amount();
 }
 
 void miner::updatepool(const uint64_t pool_id) {
@@ -235,6 +233,10 @@ uint64_t miner::get_total_stake_v() {
     stake::stat_index _stat(STAKE_CONTRACT, STAKE_CONTRACT.value);
     auto stat = _stat.get_or_default();
     return stat.stake_amount;
+}
+
+void miner::update_last_stake_amount() {
+    _stat.set({.last_stake_amount = get_total_stake_v()}, same_payer);
 }
 
 void miner::on_transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
