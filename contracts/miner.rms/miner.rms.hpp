@@ -49,6 +49,17 @@ class [[eosio::contract("miner.rms")]] miner : public contract {
     void initusers(uint64_t pool_id, uint64_t limit);
 
     /**
+     * @brief Admin: Manually syncs or creates a user's record in a pool.
+     * This is useful for users who performed actions during the initusers process,
+     * or to fix any inconsistencies.
+     *
+     * @param pool_id - The ID of the pool to sync the user in.
+     * @param user - The user account to sync.
+     */
+    [[eosio::action]]
+    void syncuser(uint64_t pool_id, const name& user);
+
+    /**
      * @brief User: Claim rewards from a specified pool
      *
      * @param user - User claiming the rewards
