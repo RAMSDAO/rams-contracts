@@ -1,11 +1,10 @@
 node_modules
 coverage
 .vscode
-.vscode
 stderr
 nodeos
 !external/**/*.wasm
 !external/**/*.abi
 .clangd
 .idea
-wasm
+/scripts/wasm

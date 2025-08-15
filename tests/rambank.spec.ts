@@ -680,47 +680,6 @@ describe('rams', () => {
                 claimed: 0,
             })
         })
-        test('claim reward', async () => {
-            // borrow
-            await contracts.rambank.actions.borrow([1, 'account2']).send('rambank.eos@active')
-            // transfer rent
-            await contracts.sats.actions
-                .transfer(['account2', 'rambank.eos', '100000 SATS', 'rent,account2'])
-                .send('account2@active')
-
-            const rentTokens = rambank_eos.getRentToken(1)
-            expect(rentTokens).toEqual({
-                id: 1,
-                token: {
-                    contract: 'sats.eos',
-                    sym: '0,SATS',
-                },
-                enabled: true,
-                total_rent_received: 100000,
-                total_reward: 0,
-                reward_balance: 0,
-                acc_per_share: 0,
-                last_reward_time: currentTime(),
-            })
-
-            const rent = rambank_eos.getRent('account2')
-            expect(rent).toEqual([
-                {
-                    id: 1,
-                    total_rent_received: {
-                        contract: 'sats.eos',
-                        quantity: '100000 SATS',
-                    },
-                },
-            ])
-            // claim
-            blockchain.addTime(TimePointSec.from(600))
-            const expect_user_reward = rambank_eos.getAccountRewardAmount(1, 'account1', 600)
-            const before_sats = getTokenBalance('account1', contracts.sats, 'SATS')
-            await contracts.rambank.actions.claim(['account1']).send('account1@active')
-            const after_sats = getTokenBalance('account1', contracts.sats, 'SATS')
-            expect(after_sats - before_sats).toEqual(expect_user_reward)
-        })
 
         test('transfer: settle reward', async () => {
             await contracts.rambank.actions.transfer(['account1', 'account2', 100, '']).send('account1')

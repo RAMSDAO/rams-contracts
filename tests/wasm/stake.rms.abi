@@ -32,12 +32,12 @@
             "base": "",
             "fields": [
                 {
-                    "name": "bytes",
-                    "type": "uint64"
-                },
-                {
                     "name": "contract",
                     "type": "name"
+                },
+                {
+                    "name": "bytes",
+                    "type": "uint64"
                 }
             ]
         },
@@ -60,12 +60,12 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "contract",
                     "type": "name"
                 },
                 {
-                    "name": "bytes",
-                    "type": "int64"
+                    "name": "amount",
+                    "type": "uint64"
                 },
                 {
                     "name": "total_borrow",
@@ -78,8 +78,59 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "account",
                     "type": "name"
+                }
+            ]
+        },
+        {
+            "name": "claimlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "token",
+                    "type": "extended_symbol"
+                }
+            ]
+        },
+        {
+            "name": "cleardata",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "cleartable",
+            "base": "",
+            "fields": [
+                {
+                    "name": "table_name",
+                    "type": "name"
+                },
+                {
+                    "name": "scope",
+                    "type": "name?"
+                },
+                {
+                    "name": "max_rows",
+                    "type": "uint64?"
+                }
+            ]
+        },
+        {
+            "name": "config",
+            "base": "",
+            "fields": [
+                {
+                    "name": "config",
+                    "type": "config_row"
                 }
             ]
         },
@@ -88,75 +139,23 @@
             "base": "",
             "fields": [
                 {
-                    "name": "disabled_deposit",
+                    "name": "init_done",
                     "type": "bool"
                 },
                 {
-                    "name": "disabled_withdraw",
-                    "type": "bool"
-                },
-                {
-                    "name": "deposit_fee_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "withdraw_fee_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "max_deposit_limit",
+                    "name": "min_unstake_amount",
                     "type": "uint64"
                 },
                 {
-                    "name": "reward_dao_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "usage_limit_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "disabled_transfer",
-                    "type": "bool$"
-                }
-            ]
-        },
-        {
-            "name": "deposit_row",
-            "base": "",
-            "fields": [
-                {
-                    "name": "account",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
+                    "name": "unstake_expire_seconds",
                     "type": "uint64"
                 },
                 {
-                    "name": "frozen_bytes",
-                    "type": "uint64$"
-                }
-            ]
-        },
-        {
-            "name": "depositlog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
+                    "name": "max_withdraw_rows",
                     "type": "uint64"
                 },
                 {
-                    "name": "fee",
-                    "type": "uint64"
-                },
-                {
-                    "name": "deposited_bytes",
+                    "name": "max_stake_amount",
                     "type": "uint64"
                 }
             ]
@@ -176,57 +175,20 @@
             ]
         },
         {
-            "name": "freeze",
+            "name": "init",
+            "base": "",
+            "fields": []
+        },
+        {
+            "name": "rams2v",
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "account",
                     "type": "name"
                 },
                 {
-                    "name": "bytes",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "freezelog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "freezed_bytes",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "maxdeposit",
-            "base": "",
-            "fields": [
-                {
-                    "name": "max_deposit_limit",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "rams2ramx",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
+                    "name": "amount",
                     "type": "uint64"
                 }
             ]
@@ -288,7 +250,7 @@
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "account",
                     "type": "name"
                 },
                 {
@@ -302,215 +264,25 @@
             ]
         },
         {
-            "name": "rewardlog",
+            "name": "restake",
             "base": "",
             "fields": [
                 {
-                    "name": "token",
-                    "type": "extended_symbol"
-                },
-                {
-                    "name": "stake_reward",
-                    "type": "uint64"
-                },
-                {
-                    "name": "dao_reward",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "stat_row",
-            "base": "",
-            "fields": [
-                {
-                    "name": "deposited_bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "used_bytes",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "statlog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "total_deposit",
-                    "type": "uint64"
-                },
-                {
-                    "name": "total_borrow",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "statuslog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "rent_token_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "enabled",
-                    "type": "bool"
-                }
-            ]
-        },
-        {
-            "name": "tokenstatus",
-            "base": "",
-            "fields": [
-                {
-                    "name": "rent_token_id",
-                    "type": "uint64"
-                },
-                {
-                    "name": "enabled",
-                    "type": "bool"
-                }
-            ]
-        },
-        {
-            "name": "transfer",
-            "base": "",
-            "fields": [
-                {
-                    "name": "from",
+                    "name": "account",
                     "type": "name"
                 },
                 {
-                    "name": "to",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "transferlog",
-            "base": "",
-            "fields": [
-                {
-                    "name": "from",
-                    "type": "name"
-                },
-                {
-                    "name": "to",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "from_bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "to_bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "memo",
-                    "type": "string"
-                }
-            ]
-        },
-        {
-            "name": "transstatus",
-            "base": "",
-            "fields": [
-                {
-                    "name": "disabled_transfer",
-                    "type": "bool"
-                }
-            ]
-        },
-        {
-            "name": "unfreeze",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
+                    "name": "id",
                     "type": "uint64"
                 }
             ]
         },
         {
-            "name": "unfreezelog",
+            "name": "reward_row",
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
-                    "type": "name"
-                },
-                {
-                    "name": "bytes",
-                    "type": "uint64"
-                },
-                {
-                    "name": "freezed_bytes",
-                    "type": "uint64"
-                }
-            ]
-        },
-        {
-            "name": "updateratio",
-            "base": "",
-            "fields": [
-                {
-                    "name": "deposit_fee_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "withdraw_fee_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "reward_dao_ratio",
-                    "type": "uint16"
-                },
-                {
-                    "name": "usage_limit_ratio",
-                    "type": "uint16"
-                }
-            ]
-        },
-        {
-            "name": "updatestatus",
-            "base": "",
-            "fields": [
-                {
-                    "name": "disabled_deposit",
-                    "type": "bool"
-                },
-                {
-                    "name": "disabled_withdraw",
-                    "type": "bool"
-                }
-            ]
-        },
-        {
-            "name": "user_reward_row",
-            "base": "",
-            "fields": [
-                {
-                    "name": "owner",
+                    "name": "account",
                     "type": "name"
                 },
                 {
@@ -532,38 +304,108 @@
             ]
         },
         {
-            "name": "withdraw",
+            "name": "stake_row",
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "account",
                     "type": "name"
                 },
                 {
-                    "name": "bytes",
+                    "name": "amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unstaking_amount",
                     "type": "uint64"
                 }
             ]
         },
         {
-            "name": "withdrawlog",
+            "name": "stat_row",
             "base": "",
             "fields": [
                 {
-                    "name": "owner",
+                    "name": "stake_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "used_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "statlog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "total_stake",
+                    "type": "uint64"
+                },
+                {
+                    "name": "total_borrow",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "stkchangelog",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
                     "type": "name"
                 },
                 {
-                    "name": "bytes",
+                    "name": "pre_amount",
                     "type": "uint64"
                 },
                 {
-                    "name": "fee",
+                    "name": "now_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "unstake",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "unstake_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
                     "type": "uint64"
                 },
                 {
-                    "name": "deposited_bytes",
+                    "name": "amount",
                     "type": "uint64"
+                },
+                {
+                    "name": "unstaking_time",
+                    "type": "time_point_sec"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "base": "",
+            "fields": [
+                {
+                    "name": "account",
+                    "type": "name"
                 }
             ]
         }
@@ -595,28 +437,33 @@
             "ricardian_contract": ""
         },
         {
-            "name": "depositlog",
-            "type": "depositlog",
+            "name": "claimlog",
+            "type": "claimlog",
             "ricardian_contract": ""
         },
         {
-            "name": "freeze",
-            "type": "freeze",
+            "name": "cleardata",
+            "type": "cleardata",
             "ricardian_contract": ""
         },
         {
-            "name": "freezelog",
-            "type": "freezelog",
+            "name": "cleartable",
+            "type": "cleartable",
             "ricardian_contract": ""
         },
         {
-            "name": "maxdeposit",
-            "type": "maxdeposit",
+            "name": "config",
+            "type": "config",
             "ricardian_contract": ""
         },
         {
-            "name": "rams2ramx",
-            "type": "rams2ramx",
+            "name": "init",
+            "type": "init",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "rams2v",
+            "type": "rams2v",
             "ricardian_contract": ""
         },
         {
@@ -625,8 +472,8 @@
             "ricardian_contract": ""
         },
         {
-            "name": "rewardlog",
-            "type": "rewardlog",
+            "name": "restake",
+            "type": "restake",
             "ricardian_contract": ""
         },
         {
@@ -635,64 +482,24 @@
             "ricardian_contract": ""
         },
         {
-            "name": "statuslog",
-            "type": "statuslog",
+            "name": "stkchangelog",
+            "type": "stkchangelog",
             "ricardian_contract": ""
         },
         {
-            "name": "tokenstatus",
-            "type": "tokenstatus",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "transfer",
-            "type": "transfer",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "transferlog",
-            "type": "transferlog",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "transstatus",
-            "type": "transstatus",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "unfreeze",
-            "type": "unfreeze",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "unfreezelog",
-            "type": "unfreezelog",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "updateratio",
-            "type": "updateratio",
-            "ricardian_contract": ""
-        },
-        {
-            "name": "updatestatus",
-            "type": "updatestatus",
+            "name": "unstake",
+            "type": "unstake",
             "ricardian_contract": ""
         },
         {
             "name": "withdraw",
             "type": "withdraw",
             "ricardian_contract": ""
-        },
-        {
-            "name": "withdrawlog",
-            "type": "withdrawlog",
-            "ricardian_contract": ""
         }
     ],
     "tables": [
         {
-            "name": "borrows",
+            "name": "borrow",
             "type": "borrow_row",
             "index_type": "i64",
             "key_names": [],
@@ -706,22 +513,29 @@
             "key_types": []
         },
         {
-            "name": "deposits",
-            "type": "deposit_row",
-            "index_type": "i64",
-            "key_names": [],
-            "key_types": []
-        },
-        {
-            "name": "rents",
+            "name": "rent",
             "type": "rent_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
         },
         {
-            "name": "renttokens",
+            "name": "renttoken",
             "type": "rent_token_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "reward",
+            "type": "reward_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "stake",
+            "type": "stake_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []
@@ -734,8 +548,8 @@
             "key_types": []
         },
         {
-            "name": "userrewards",
-            "type": "user_reward_row",
+            "name": "unstake",
+            "type": "unstake_row",
             "index_type": "i64",
             "key_names": [],
             "key_types": []

@@ -1,0 +1,186 @@
+{
+    "____comment": "This file was generated with eosio-abigen. DO NOT EDIT ",
+    "version": "eosio::abi/1.2",
+    "types": [],
+    "structs": [
+        {
+            "name": "addpool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "reward_token",
+                    "type": "name"
+                },
+                {
+                    "name": "reward_per_block",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "claim",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "pool_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "clearpool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "pool_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "clearuser",
+            "base": "",
+            "fields": [
+                {
+                    "name": "pool_id",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "poolinfo_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward_token",
+                    "type": "name"
+                },
+                {
+                    "name": "reward_per_block",
+                    "type": "asset"
+                },
+                {
+                    "name": "last_reward_block",
+                    "type": "uint32"
+                },
+                {
+                    "name": "acc_reward_per_share",
+                    "type": "uint128"
+                }
+            ]
+        },
+        {
+            "name": "setpool",
+            "base": "",
+            "fields": [
+                {
+                    "name": "pool_id",
+                    "type": "uint64"
+                },
+                {
+                    "name": "reward_per_block",
+                    "type": "asset"
+                }
+            ]
+        },
+        {
+            "name": "stakechange",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "pre_amount",
+                    "type": "uint64"
+                }
+            ]
+        },
+        {
+            "name": "userinfo_row",
+            "base": "",
+            "fields": [
+                {
+                    "name": "user",
+                    "type": "name"
+                },
+                {
+                    "name": "stake_amount",
+                    "type": "uint64"
+                },
+                {
+                    "name": "unclaimed",
+                    "type": "asset"
+                },
+                {
+                    "name": "claimed",
+                    "type": "asset"
+                },
+                {
+                    "name": "debt",
+                    "type": "uint128"
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "name": "addpool",
+            "type": "addpool",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "claim",
+            "type": "claim",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "clearpool",
+            "type": "clearpool",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "clearuser",
+            "type": "clearuser",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "setpool",
+            "type": "setpool",
+            "ricardian_contract": ""
+        },
+        {
+            "name": "stakechange",
+            "type": "stakechange",
+            "ricardian_contract": ""
+        }
+    ],
+    "tables": [
+        {
+            "name": "poolinfo",
+            "type": "poolinfo_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        },
+        {
+            "name": "userinfo",
+            "type": "userinfo_row",
+            "index_type": "i64",
+            "key_names": [],
+            "key_types": []
+        }
+    ],
+    "ricardian_clauses": [],
+    "variants": [],
+    "action_results": []
+}

@@ -11,7 +11,8 @@
     "test": "jest --verbose",
     "test:honor": "jest --verbose tests/honor.spec.ts",
     "test:rambank": "jest --verbose tests/rambank.spec.ts",
-    "test:token": "jest --verbose tests/token.spec.ts"
+    "test:token": "jest --verbose tests/token.spec.ts",
+    "test:stake": "jest --verbose tests/stake.spec.ts"
   },
   "devDependencies": {
     "@proton/vert": "^0.3.24",

@@ -75,7 +75,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      * @field buy_quantity - pending buy order eos volume
      * @field buy_bytes - total bytes of buy orders
      * @field num_buy_orders - total number of buy orders
-     * @field sell_quantity - pending sell order eos volume 
+     * @field sell_quantity - pending sell order eos volume
      * @field sell_bytes - total bytes of sell orders
      * @field num_sell_orders - total number of sell orders
      * @field trade_quantity - transacted eos volume
@@ -101,11 +101,11 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      * @scope get_self()
      *
      * @param id - order id
-     * @param owner -user who created the order 
-     * @param price - price for order 
+     * @param owner -user who created the order
+     * @param price - price for order
      * @param bytes - number of ram bytes
      * @param quantity - the number of EOS transactions
-     * @param created_at - created at time 
+     * @param created_at - created at time
      *
      **/
     struct [[eosio::table]] order_row {
@@ -134,7 +134,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      *
      * @param fee_account - the account that receives the handling fee
      * @param fee_ratio - handling fee ratio (maximum 10000)
-     * 
+     *
      */
     [[eosio::action]]
     void feeconfig(const name& fee_account, const uint16_t fee_ratio);
@@ -145,7 +145,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      * - **authority**: `get_self()`
      * @param min_trade_amount - minimum transaction eos quantity
      * @param min_trade_bytes - minimum transaction ram bytes
-     * 
+     *
      */
     [[eosio::action]]
     void tradeconfig(const asset& min_trade_amount, const uint64_t min_trade_bytes);
@@ -157,7 +157,7 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      * @param disabled_trade - trade order
      * @param disabled_pending_order - pending order status
      * @param disabled_cancel_order - cancel order status
-     * 
+     *
      */
     [[eosio::action]]
     void statusconfig(const bool disabled_trade, const bool disabled_pending_order, const bool disabled_cancel_order);
@@ -180,12 +180,68 @@ class [[eosio::contract("ramx.eos")]] ramx : public contract {
      *
      * - **authority**: `owner`
      *
-     * @param owner - user canceling the order 
+     * @param owner - user canceling the order
      * @param order_ids - order id to be canceled
      *
      */
     [[eosio::action]]
     vector<uint64_t> cancelorder(const name& owner, const vector<uint64_t> order_ids);
+
+    [[eosio::action]]
+    void cancelallord(const uint16_t max_rows);
+
+#ifdef DEBUG
+    [[eosio::action]]
+    void imporder(const vector<order_row>& orders) {
+        require_auth(get_self());
+        for (const auto& order : orders) {
+            _order.emplace(get_self(), [&](auto& row) {
+                row.id = order.id;
+                row.type = order.type;
+                row.owner = order.owner;
+                row.price = order.price;
+                row.bytes = order.bytes;
+                row.quantity = order.quantity;
+                row.created_at = order.created_at;
+            });
+        }
+    }
+    
+    [[eosio::action]]
+    void impstat(const stat_row& stat) {
+        require_auth(get_self());
+        _stat.set(stat, get_self());
+    }   
+
+    [[eosio::action]]
+    void cleartable(const name table_name, const optional<name> scope, const optional<uint64_t> max_rows){
+        require_auth(get_self());
+        const uint64_t rows_to_clear = (!max_rows || *max_rows == 0) ? -1 : *max_rows;
+        const uint64_t value = scope ? scope->value : get_self().value;
+
+        if (table_name == "orders"_n) {
+            auto itr = _order.begin();
+            while (itr != _order.end()) {
+                itr = _order.erase(itr);
+            }
+        } else if (table_name == "stat"_n) {
+            _stat.remove();
+        } else {
+            check(false, "ramx.eos::cleartable: [table_name] unknown table to clear");
+        }
+    }
+
+    [[eosio::action]]
+    void cleardata() {
+        require_auth(get_self());
+        auto itr = _order.begin();
+        while (itr != _order.end()) {
+            itr = _order.erase(itr);
+        }
+
+        _stat.remove();
+    }
+#endif
 
     /**
      * Sell ram action.

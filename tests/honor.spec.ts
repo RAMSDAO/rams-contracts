@@ -11,6 +11,8 @@ const contracts = {
     rams: blockchain.createContract('newrams.eos', 'tests/wasm/eosio.token', true),
     honor: blockchain.createContract('honor.rms', 'tests/wasm/honor.rms', true),
     rambank: blockchain.createContract('rambank.eos', 'tests/wasm/rambank.eos', true),
+    stake: blockchain.createContract('stake.rms', 'tests/wasm/stake.rms', true),
+    miner: blockchain.createContract('miner.rms', 'tests/wasm/miner.rms', true),
 }
 
 // accounts
@@ -217,6 +219,8 @@ describe('honor', () => {
           }
           
         ]]).send('rambank.eos@active')  
+
+        await contracts.stake.actions.init().send('stake.rms@active')
     })
 
     describe('honor.rms', () => {
