@@ -8,3 +8,4 @@ nodeos
 .clangd
 .idea
 /scripts/wasm
+build

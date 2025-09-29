@@ -349,9 +349,12 @@ void stake::do_repay_ram(const name& from, const name& borrower, int64_t bytes, 
 void stake::claim(const name& account) {
     require_auth(account);
 
-    auto stake_itr = _stake.require_find(account.value, "stake.rms::claim: account not found in stake table");
-    check(stake_itr->amount > 0, "stake.rms::claim: account not found in stake table");
-    auto stake_amount = stake_itr->amount;
+    auto stake_itr = _stake.find(account.value);
+    // Allow users to claim accumulated rewards even if they don't have a stake record or their stake amount is 0
+    uint64_t stake_amount = 0;
+    if (stake_itr != _stake.end()) {
+        stake_amount = stake_itr->amount;
+    }
 
     auto stat = _stat.get_or_default();
     auto total_claimed = 0;
