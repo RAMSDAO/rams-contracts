@@ -221,6 +221,9 @@ describe('honor', () => {
         ]]).send('rambank.eos@active')  
 
         await contracts.stake.actions.init().send('stake.rms@active')
+
+        // set honor.rms register expire time
+        await contracts.honor.actions.updatestatus([false, TimePointSec.from(new Date(Date.now() + 86400000))]).send('honor.rms@active')
     })
 
     describe('honor.rms', () => {
